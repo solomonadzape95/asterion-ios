@@ -10,6 +10,7 @@ struct NovelDetailView: View {
     let novel: Novel
 
     @State private var chapters: [Chapter] = []
+    @State private var fullChapters: [Chapter] = []
     @State private var totalChapters = 0
     @State private var loadingChapters = false
     @State private var chapterError: String?
@@ -27,6 +28,12 @@ struct NovelDetailView: View {
 
     private let previewCount = 5
     private var genreColor: Color { GenreStyle.color(for: novel.genres) }
+
+    /// Full chapter list for the reader to navigate. Falls back to the preview
+    /// until the complete list has loaded.
+    private var readerChapters: [Chapter] {
+        fullChapters.isEmpty ? chapters : fullChapters
+    }
 
     private var similarNovels: [Novel] {
         allNovels
@@ -293,10 +300,11 @@ struct NovelDetailView: View {
         let targetChapter = continueChapter ?? chapters.first
         if let targetChapter {
             let chapterListForReader: [Chapter] = {
-                if chapters.contains(where: { $0.id == targetChapter.id }) {
-                    return chapters
+                let base = readerChapters
+                if base.contains(where: { $0.id == targetChapter.id }) {
+                    return base
                 }
-                return [targetChapter] + chapters
+                return [targetChapter] + base
             }()
             NavigationLink {
                 ReaderView(
@@ -406,7 +414,7 @@ struct NovelDetailView: View {
                             ReaderView(
                                 initialChapter: chapter,
                                 novel: novel,
-                                allChapters: chapters
+                                allChapters: readerChapters
                             )
                         } label: {
                             HStack(spacing: 10) {
@@ -443,7 +451,7 @@ struct NovelDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
                 NavigationLink {
-                    ChaptersView(novel: novel, allChapters: chapters, totalCount: totalChapters)
+                    ChaptersView(novel: novel, allChapters: readerChapters, totalCount: totalChapters)
                 } label: {
                     HStack(spacing: 8) {
                         Text("View All Chapters")
@@ -530,11 +538,37 @@ struct NovelDetailView: View {
 
     private func loadInitialData() async {
         async let chaptersTask: () = loadChapters()
+        async let fullChaptersTask: () = loadFullChapterList()
         async let novelsTask: () = loadAllNovels()
         async let progressTask: () = loadProgress()
         async let libraryTask: () = loadLibraryState()
-        _ = await (chaptersTask, novelsTask, progressTask, libraryTask)
+        _ = await (chaptersTask, fullChaptersTask, novelsTask, progressTask, libraryTask)
         await refreshOfflineAvailability()
+    }
+
+    /// Loads the complete chapter list (metadata only, no content) so the reader
+    /// can navigate every chapter, not just the preview.
+    private func loadFullChapterList() async {
+        do {
+            let response = try await apiClient.fetchChapters(
+                novelId: novel.id,
+                limit: 100_000,
+                offset: 0
+            )
+            if !response.data.isEmpty {
+                fullChapters = response.data
+                await OfflineChapterStore.shared.saveChapterList(
+                    novelId: novel.id,
+                    chapters: response.data,
+                    mergeWithExisting: true
+                )
+            }
+        } catch {
+            let cached = await OfflineChapterStore.shared.loadChapterList(novelId: novel.id)
+            if !cached.isEmpty {
+                fullChapters = cached
+            }
+        }
     }
 
     private func loadChapters() async {

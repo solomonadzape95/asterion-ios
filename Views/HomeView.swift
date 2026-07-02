@@ -274,7 +274,7 @@ struct HomeView: View {
 
                 let chapterList: [Chapter]
                 do {
-                    let response = try await apiClient.fetchChapters(novelId: novel.id, limit: 1000, offset: 0)
+                    let response = try await apiClient.fetchChapters(novelId: novel.id, limit: 100_000, offset: 0)
                     await OfflineChapterStore.shared.saveChapterList(novelId: novel.id, chapters: response.data, mergeWithExisting: true)
                     chapterList = response.data
                 } catch {
