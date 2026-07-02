@@ -46,6 +46,9 @@
 		AABB00132F5700010099DF4E /* ChapterDownloadActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00062F5700010099DF4E /* ChapterDownloadActivityAttributes.swift */; };
 		AABB00142F5700010099DF4E /* AsterionWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AABB00152F5700010099DF4E /* AsterionWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AABB00222F5700010099DF4E /* EdgeSwipeBackModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00232F5700010099DF4E /* EdgeSwipeBackModifier.swift */; };
+		FADE00012F58000000000001 /* LocalContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00022F58000000000002 /* LocalContentStore.swift */; };
+		FADE00032F58000000000003 /* asterion-content.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = FADE00042F58000000000004 /* asterion-content.sqlite */; };
+		FADE00052F58000000000005 /* LocalUserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00062F58000000000006 /* LocalUserStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -125,6 +128,9 @@
 		AABB00152F5700010099DF4E /* AsterionWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AsterionWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABB00172F5700010099DF4E /* AsterionWidgetExtension/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = AsterionWidgetExtension/Info.plist; sourceTree = SOURCE_ROOT; };
 		AABB00232F5700010099DF4E /* EdgeSwipeBackModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSwipeBackModifier.swift; sourceTree = "<group>"; };
+		FADE00022F58000000000002 /* LocalContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalContentStore.swift; sourceTree = "<group>"; };
+		FADE00042F58000000000004 /* asterion-content.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = "asterion-content.sqlite"; sourceTree = "<group>"; };
+		FADE00062F58000000000006 /* LocalUserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalUserStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -178,6 +184,7 @@
 		70CC443F2F55E07E0099DF4E = {
 			isa = PBXGroup;
 			children = (
+				FADE00042F58000000000004 /* asterion-content.sqlite */,
 				70CC44772F55E13B0099DF4E /* AppStore */,
 				AABB00162F5700010099DF4E /* AsterionWidgetExtension */,
 				70CC447B2F55E13B0099DF4E /* Intents */,
@@ -239,6 +246,8 @@
 			isa = PBXGroup;
 			children = (
 				70CC44822F55E13B0099DF4E /* APIClient.swift */,
+				FADE00022F58000000000002 /* LocalContentStore.swift */,
+				FADE00062F58000000000006 /* LocalUserStore.swift */,
 				70CC44832F55E13B0099DF4E /* AuthService.swift */,
 				70CC44842F55E13B0099DF4E /* KeychainHelper.swift */,
 				AABB00042F5700010099DF4E /* DownloadLiveActivityManager.swift */,
@@ -450,6 +459,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FADE00032F58000000000003 /* asterion-content.sqlite in Resources */,
 				70CC44A92F55E13B0099DF4E /* screenshots-checklist.md in Resources */,
 				70CC44AA2F55E13B0099DF4E /* metadata.md in Resources */,
 				70CC44AC2F55E13B0099DF4E /* icon-brief.md in Resources */,
@@ -484,6 +494,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FADE00012F58000000000001 /* LocalContentStore.swift in Sources */,
+				FADE00052F58000000000005 /* LocalUserStore.swift in Sources */,
 				70CC44942F55E13B0099DF4E /* ReaderView.swift in Sources */,
 				70CC44952F55E13B0099DF4E /* ReadingProgressService.swift in Sources */,
 				70CC44962F55E13B0099DF4E /* NovelDetailView.swift in Sources */,
@@ -680,9 +692,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V6Y7WXX6Z5;
+				DEVELOPMENT_TEAM = 8KWRCRQ68L;
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
@@ -710,13 +723,15 @@
 					"-Xlinker",
 					"-interposable",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = cyberverse.Asterion;
+				PRODUCT_BUNDLE_IDENTIFIER = solenoid.Asterion;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -733,9 +748,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V6Y7WXX6Z5;
+				DEVELOPMENT_TEAM = 8KWRCRQ68L;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -758,13 +774,15 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = cyberverse.Asterion;
+				PRODUCT_BUNDLE_IDENTIFIER = solenoid.Asterion;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -880,7 +898,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V6Y7WXX6Z5;
+				DEVELOPMENT_TEAM = 8KWRCRQ68L;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AsterionWidgetExtension/Info.plist;
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -891,7 +909,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = cyberverse.Asterion.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = solenoid.Asterion.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -907,7 +925,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V6Y7WXX6Z5;
+				DEVELOPMENT_TEAM = 8KWRCRQ68L;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AsterionWidgetExtension/Info.plist;
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -918,7 +936,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = cyberverse.Asterion.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = solenoid.Asterion.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;

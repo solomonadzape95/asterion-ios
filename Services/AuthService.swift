@@ -1,4 +1,3 @@
-import ClerkKit
 import Combine
 import Foundation
 import OSLog
@@ -30,15 +29,11 @@ final class AuthService: NSObject, ObservableObject {
     }
 
     func signOut() {
-        logger.info("Sign out requested.")
-        debugPrint("Sign out requested.")
-        Task {
-            try? await Clerk.shared.auth.signOut()
-        }
-        currentUser = nil
-        sessionToken = nil
-        keychain.delete(key: tokenKey)
-        keychain.delete(key: userIdKey)
+        // Offline, single-user build: there is no remote account to sign out of,
+        // so this is intentionally inert (kept so ProfileView compiles unchanged).
+        // Local reading data can be cleared via LocalUserStore.reset() if desired.
+        logger.info("Sign out requested (no-op in offline build).")
+        debugPrint("Sign out requested (no-op in offline build).")
     }
 
     func persistSession(token: String, user: User) {
@@ -50,51 +45,27 @@ final class AuthService: NSObject, ObservableObject {
         keychain.save(key: userIdKey, value: user.id)
     }
 
+    /// Establishes the single local reader account. Keeps its original name so
+    /// existing call sites (AsterionApp, ProfileView) are unchanged, but no
+    /// longer touches Clerk — the app is always "signed in" locally and offline.
     func syncClerkSession() async {
-        let clerk = Clerk.shared
-        guard let clerkUser = clerk.user else {
-            logger.info("No Clerk user found during session sync.")
-            debugPrint("No Clerk user found during session sync.")
-            return
+        let existingId = keychain.read(key: userIdKey)
+        let userId = existingId ?? LocalUserStore.localUserId
+        if existingId == nil {
+            keychain.save(key: userIdKey, value: userId)
         }
-        logger.info("Starting Clerk session sync for userId: \(clerkUser.id, privacy: .public)")
-        debugPrint("Starting Clerk session sync for userId: \(clerkUser.id)")
-
-        do {
-            let token = try await clerk.auth.getToken()
-
-            let email = clerkUser.emailAddresses.first?.emailAddress
-            let name = [clerkUser.firstName, clerkUser.lastName]
-                .compactMap { $0 }
-                .joined(separator: " ")
-            let displayName = name.isEmpty ? nil : name
-
-            currentUser = User(
-                id: clerkUser.id,
-                appleUserId: nil,
-                email: email,
-                username: displayName ?? email,
-                pfpUrl: clerkUser.imageUrl,
-                bookmarks: []
-            )
-
-            sessionToken = token
-            keychain.save(key: userIdKey, value: clerkUser.id)
-            if let token {
-                keychain.save(key: tokenKey, value: token)
-            } else {
-                keychain.delete(key: tokenKey)
-            }
-            authError = nil
-            logger.info(
-                "Sign in sync succeeded for userId: \(clerkUser.id, privacy: .public), email: \(email ?? "unknown", privacy: .public)"
-            )
-            debugPrint("Sign in sync succeeded for userId: \(clerkUser.id), email: \(email ?? "unknown")")
-        } catch {
-            authError = error.localizedDescription
-            logger.error("Sign in sync failed: \(error.localizedDescription, privacy: .public)")
-            debugPrint("Sign in sync failed: \(error.localizedDescription)")
-        }
+        currentUser = User(
+            id: userId,
+            appleUserId: nil,
+            email: nil,
+            username: "Reader",
+            pfpUrl: nil,
+            bookmarks: []
+        )
+        sessionToken = userId
+        authError = nil
+        logger.info("Local reader session established.")
+        debugPrint("Local reader session established. userId=\(userId)")
     }
 
     func syncUserProfileToBackend(using apiClient: APIClient) async {

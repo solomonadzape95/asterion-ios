@@ -1,0 +1,21 @@
+# Local offline content DB (large, do not commit)
+asterion-content.sqlite
+
+# Secrets / local env
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Xcode user-specific state & build output
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM

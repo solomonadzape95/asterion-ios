@@ -1,6 +1,5 @@
 import Foundation
 import Combine
-import ClerkKit
 
 struct AsterionUserProfile: Identifiable, Codable, Hashable {
     let id: String
@@ -89,41 +88,29 @@ final class APIClient: ObservableObject {
         debugLog("Session token updated. tokenPresent=\(token != nil)")
     }
 
-    // MARK: - Novels
+    // MARK: - Novels & Chapters (local, offline)
+    //
+    // Content is served from a bundled SQLite database (LocalContentStore),
+    // converted from the original PostgreSQL content dump. These methods keep
+    // the same signatures as the former network calls so the views are unchanged.
+
+    private let content = LocalContentStore.shared
+    private let userStore = LocalUserStore.shared
 
     func fetchNovels(limit: Int = 30, offset: Int = 0, search: String = "") async throws -> [Novel] {
-        var items: [URLQueryItem] = [
-            URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "offset", value: "\(offset)")
-        ]
-        if !search.isEmpty {
-            items.append(URLQueryItem(name: "search", value: search))
-        }
-        let url = contentBaseURL.appending(path: "/novels").appending(queryItems: items)
-        let wrapper: DataWrapper<[Novel]> = try await request(url: url)
-        return wrapper.data
+        try await content.fetchNovels(limit: limit, offset: offset, search: search)
     }
 
     func fetchNovel(id: String) async throws -> Novel {
-        let url = contentBaseURL.appending(path: "/novels/\(id)")
-        let wrapper: DataWrapper<Novel> = try await request(url: url)
-        return wrapper.data
+        try await content.fetchNovel(id: id)
     }
 
-    // MARK: - Chapters
-
     func fetchChapters(novelId: String, limit: Int = 100, offset: Int = 0) async throws -> PaginatedResponse<Chapter> {
-        let url = contentBaseURL.appending(path: "/novels/\(novelId)/chapters").appending(queryItems: [
-            URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "offset", value: "\(offset)")
-        ])
-        return try await request(url: url)
+        try await content.fetchChapters(novelId: novelId, limit: limit, offset: offset)
     }
 
     func fetchChapter(id: String) async throws -> Chapter {
-        let url = contentBaseURL.appending(path: "/chapters/\(id)")
-        let wrapper: DataWrapper<Chapter> = try await request(url: url)
-        return wrapper.data
+        try await content.fetchChapter(id: id)
     }
 
     // MARK: - Auth
@@ -156,44 +143,23 @@ final class APIClient: ObservableObject {
     }
 
     func fetchMyStats() async throws -> UserStats {
-        let url = userBaseURL.appending(path: "/me/stats")
-        let wrapper: DataWrapper<UserStats> = try await request(url: url)
-        return wrapper.data
+        await userStore.stats()
     }
 
     func fetchMyProfile() async throws -> AsterionUserProfile {
-        let url = userBaseURL.appending(path: "/me")
-        let wrapper: DataWrapper<AsterionUserProfile> = try await request(url: url)
-        return wrapper.data
+        await userStore.profile()
     }
 
     func updateMyProfile(email: String? = nil, username: String? = nil, avatarUrl: String? = nil) async throws -> AsterionUserProfile {
-        let url = userBaseURL.appending(path: "/me")
-        struct RequestBody: Encodable {
-            let email: String?
-            let username: String?
-            let avatarUrl: String?
-        }
-        let wrapper: DataWrapper<AsterionUserProfile> = try await request(
-            url: url,
-            method: "PATCH",
-            body: RequestBody(email: email, username: username, avatarUrl: avatarUrl)
-        )
-        return wrapper.data
+        await userStore.updateProfile(email: email, username: username, avatarUrl: avatarUrl)
     }
 
     func fetchReadingProgress(novelId: String) async throws -> ReadingProgress? {
-        let url = userBaseURL.appending(path: "/me/progress").appending(queryItems: [
-            URLQueryItem(name: "novelId", value: novelId),
-        ])
-        let wrapper: DataWrapper<ReadingProgress?> = try await request(url: url)
-        return wrapper.data
+        await userStore.readingProgress(novelId: novelId)
     }
 
     func fetchAllReadingProgress() async throws -> [ReadingProgress] {
-        let url = userBaseURL.appending(path: "/me/progress")
-        let wrapper: DataWrapper<[ReadingProgress]> = try await request(url: url)
-        return wrapper.data
+        await userStore.allReadingProgress()
     }
 
     func upsertReadingProgress(
@@ -203,79 +169,38 @@ final class APIClient: ObservableObject {
         totalLines: Int,
         percentage: Double? = nil
     ) async throws -> ReadingProgress {
-        let url = userBaseURL.appending(path: "/me/progress")
-        struct RequestBody: Encodable {
-            let novelId: String
-            let chapterId: String
-            let currentLine: Int
-            let totalLines: Int
-            let percentage: Double?
-        }
-        let wrapper: DataWrapper<ReadingProgress> = try await request(
-            url: url,
-            method: "PUT",
-            body: RequestBody(
-                novelId: novelId,
-                chapterId: chapterId,
-                currentLine: currentLine,
-                totalLines: totalLines,
-                percentage: percentage
-            )
+        await userStore.upsertReadingProgress(
+            novelId: novelId,
+            chapterId: chapterId,
+            currentLine: currentLine,
+            totalLines: totalLines,
+            percentage: percentage
         )
-        return wrapper.data
     }
 
     func fetchBookmarks() async throws -> [AsterionBookmark] {
-        let url = userBaseURL.appending(path: "/me/bookmarks")
-        let wrapper: DataWrapper<[AsterionBookmark]> = try await request(url: url)
-        return wrapper.data
+        await userStore.bookmarks()
     }
 
     func fetchMyLibrary() async throws -> [AsterionLibraryNovel] {
-        let url = userBaseURL.appending(path: "/me/library")
-        let wrapper: DataWrapper<[AsterionLibraryNovel]> = try await request(url: url)
-        return wrapper.data
+        await userStore.library()
     }
 
     func addNovelToLibrary(novelId: String) async throws -> AsterionLibraryNovel {
-        let url = userBaseURL.appending(path: "/me/library")
-        struct RequestBody: Encodable {
-            let novelId: String
-        }
-        let wrapper: DataWrapper<AsterionLibraryNovel> = try await request(
-            url: url,
-            method: "POST",
-            body: RequestBody(novelId: novelId)
-        )
-        return wrapper.data
+        await userStore.addToLibrary(novelId: novelId)
     }
 
     @discardableResult
     func removeNovelFromLibrary(novelId: String) async throws -> Bool {
-        let url = userBaseURL.appending(path: "/me/library/\(novelId)")
-        struct DeleteResponse: Decodable {
-            let deleted: Bool
-        }
-        let wrapper: DataWrapper<DeleteResponse> = try await requestNoBody(
-            url: url,
-            method: "DELETE"
-        )
-        return wrapper.data.deleted
+        await userStore.removeFromLibrary(novelId: novelId)
     }
 
     func fetchReadingHistory(limit: Int = 20, offset: Int = 0) async throws -> [AsterionReadingHistoryEntry] {
-        let url = userBaseURL.appending(path: "/me/history").appending(queryItems: [
-            URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "offset", value: "\(offset)"),
-        ])
-        let wrapper: DataWrapper<[AsterionReadingHistoryEntry]> = try await request(url: url)
-        return wrapper.data
+        await userStore.readingHistory(limit: limit, offset: offset)
     }
 
     func fetchMyPreferences() async throws -> AsterionUserPreferences {
-        let url = userBaseURL.appending(path: "/me/preferences")
-        let wrapper: DataWrapper<AsterionUserPreferences> = try await request(url: url)
-        return wrapper.data
+        await userStore.preferences()
     }
 
     func updateMyPreferences(
@@ -284,52 +209,21 @@ final class APIClient: ObservableObject {
         notificationsOn: Bool? = nil,
         fontSizePref: String? = nil
     ) async throws -> AsterionUserPreferences {
-        let url = userBaseURL.appending(path: "/me/preferences")
-        struct RequestBody: Encodable {
-            let readingGoal: Int?
-            let darkMode: Bool?
-            let notificationsOn: Bool?
-            let fontSizePref: String?
-        }
-        let wrapper: DataWrapper<AsterionUserPreferences> = try await request(
-            url: url,
-            method: "PATCH",
-            body: RequestBody(
-                readingGoal: readingGoal,
-                darkMode: darkMode,
-                notificationsOn: notificationsOn,
-                fontSizePref: fontSizePref
-            )
+        await userStore.updatePreferences(
+            readingGoal: readingGoal,
+            darkMode: darkMode,
+            notificationsOn: notificationsOn,
+            fontSizePref: fontSizePref
         )
-        return wrapper.data
     }
 
     func createBookmark(novelId: String, chapterId: String, note: String? = nil) async throws -> AsterionBookmark {
-        let url = userBaseURL.appending(path: "/me/bookmarks")
-        struct RequestBody: Encodable {
-            let novelId: String
-            let chapterId: String
-            let note: String?
-        }
-        let wrapper: DataWrapper<AsterionBookmark> = try await request(
-            url: url,
-            method: "POST",
-            body: RequestBody(novelId: novelId, chapterId: chapterId, note: note)
-        )
-        return wrapper.data
+        await userStore.createBookmark(novelId: novelId, chapterId: chapterId, note: note)
     }
 
     @discardableResult
     func deleteBookmark(id: String) async throws -> Bool {
-        let url = userBaseURL.appending(path: "/me/bookmarks/\(id)")
-        struct DeleteResponse: Decodable {
-            let deleted: Bool
-        }
-        let wrapper: DataWrapper<DeleteResponse> = try await requestNoBody(
-            url: url,
-            method: "DELETE"
-        )
-        return wrapper.data.deleted
+        await userStore.deleteBookmark(id: id)
     }
 
     // MARK: - Networking
@@ -472,17 +366,8 @@ final class APIClient: ObservableObject {
     }
 
     private func refreshSessionTokenIfPossible() async -> Bool {
-        do {
-            debugLog("Attempting Clerk token refresh.")
-            let token = try await Clerk.shared.auth.getToken()
-            guard let token, !token.isEmpty else { return false }
-            sessionToken = token
-            debugLog("Clerk token refresh returned a token.")
-            return true
-        } catch {
-            debugLog("Clerk token refresh threw error: \(error.localizedDescription)")
-            return false
-        }
+        // No remote auth in the offline build; nothing to refresh.
+        return false
     }
 
     private static func makeDecoder() -> JSONDecoder {

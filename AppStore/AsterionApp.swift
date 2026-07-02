@@ -1,17 +1,10 @@
 import Combine
-import ClerkKit
-import ClerkKitUI
 import SwiftUI
 
 @MainActor
 final class TabBarState: ObservableObject {
     @Published var isVisible = true
 }
-
-private let _clerkConfigured: Bool = {
-    Clerk.configure(publishableKey: "pk_test_cG9ldGljLWdhdG9yLTk3LmNsZXJrLmFjY291bnRzLmRldiQ")
-    return true
-}()
 
 @main
 struct AsterionApp: App {
@@ -21,8 +14,6 @@ struct AsterionApp: App {
     @StateObject private var readingProgressService = ReadingProgressService()
 
     init() {
-        _ = _clerkConfigured
-
         let bg = UIColor(red: 0.051, green: 0.047, blue: 0.043, alpha: 1)
         let titleColor = UIColor(red: 0.91, green: 0.863, blue: 0.784, alpha: 1)
 
@@ -73,7 +64,6 @@ struct AsterionApp: App {
                 .environmentObject(apiClient)
                 .environmentObject(tabBarState)
                 .environmentObject(readingProgressService)
-                .environment(Clerk.shared)
                 .preferredColorScheme(.dark)
                 .task {
                     await authService.syncClerkSession()
