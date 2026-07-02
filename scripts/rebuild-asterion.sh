@@ -1,39 +1,37 @@
 #!/bin/bash
 #
-# Rebuilds Asterion (Designed for iPad, on Mac) with a freshly refreshed free
-# provisioning profile and replaces /Applications/Asterion.app.
+# Rebuilds Asterion as a native Mac Catalyst app, signed to run locally (ad-hoc),
+# and replaces /Applications/Asterion.app.
 #
-# Free Apple "Personal Team" signatures expire after 7 days; run this on a
-# schedule (see com.solenoid.asterion.rebuild.plist) to keep the app launchable.
+# Because the app is ad-hoc signed ("sign to run locally"), it does NOT expire —
+# you only need to run this after you change the code and want to redeploy.
 #
-# One-time setup:
-#   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-#   chmod +x scripts/rebuild-asterion.sh
-#   bash scripts/rebuild-asterion.sh      # test it once, watch the log
+# Requires full Xcode:  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+# Run:                  bash scripts/rebuild-asterion.sh
 #
 set -euo pipefail
 
 PROJECT_DIR="/Users/solenoid/Documents/Development/Personal/asterion-ios"
 SCHEME="Asterion"
 CONFIG="Release"
-DERIVED="$PROJECT_DIR/build"
+DERIVED="$PROJECT_DIR/build-catalyst"
 LOG="$HOME/Library/Logs/asterion-rebuild.log"
 
 mkdir -p "$(dirname "$LOG")"
 exec >>"$LOG" 2>&1
 echo ""
-echo "=== $(date '+%Y-%m-%d %H:%M:%S') : starting rebuild ==="
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') : starting Mac Catalyst rebuild ==="
 
 cd "$PROJECT_DIR"
 
-# Build the "Designed for iPad" Mac variant, refreshing the (free) profile.
 xcodebuild \
   -project Asterion.xcodeproj \
   -scheme "$SCHEME" \
   -configuration "$CONFIG" \
-  -destination 'platform=macOS,variant=Designed for iPad' \
+  -destination 'platform=macOS,variant=Mac Catalyst' \
   -derivedDataPath "$DERIVED" \
-  -allowProvisioningUpdates \
+  CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="" \
+  PROVISIONING_PROFILE_SPECIFIER="" REGISTER_APP_GROUPS=NO \
   build
 
 APP="$(/usr/bin/find "$DERIVED/Build/Products" -maxdepth 2 -name 'Asterion.app' -type d | head -1)"
@@ -42,7 +40,6 @@ if [ -z "$APP" ]; then
   exit 1
 fi
 
-# Quit the app if it's open, then replace the /Applications copy.
 /usr/bin/osascript -e 'tell application "Asterion" to quit' 2>/dev/null || true
 sleep 2
 /bin/rm -rf "/Applications/Asterion.app"

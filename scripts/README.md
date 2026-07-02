@@ -20,6 +20,9 @@ so the Xcode "Resources" build phase can bundle it into `Asterion.app`.
 
 ## Notes
 
-- The app is fully offline: no backend, no login. User data (library,
-  bookmarks, reading progress, preferences) is stored locally on-device.
+- The app is a **Mac Catalyst** app, ad-hoc signed to run locally (no 7-day
+  expiry). `rebuild-asterion.sh` rebuilds + redeploys it after code changes.
+- Fully offline: no backend, no login. User data (library, bookmarks, reading
+  progress, preferences) is stored locally on-device.
+- The iOS widget and Live Activities were removed for the Mac build.
 - Content source: `LocalContentStore.swift`. User data: `LocalUserStore.swift`.

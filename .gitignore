@@ -19,3 +19,4 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
+build-catalyst/

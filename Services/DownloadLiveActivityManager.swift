@@ -1,3 +1,16 @@
+#if targetEnvironment(macCatalyst)
+import Foundation
+
+/// Live Activities (ActivityKit) are iOS-only. On Mac Catalyst this is a no-op
+/// stub that preserves the API so call sites compile unchanged.
+@MainActor
+final class DownloadLiveActivityManager {
+    static let shared = DownloadLiveActivityManager()
+    func start(novelTitle: String, novelImageURL: String?, total: Int) async {}
+    func update(completed: Int, total: Int) {}
+    func end(success: Bool, completed: Int, total: Int) {}
+}
+#else
 import ActivityKit
 import Foundation
 import UIKit
@@ -123,3 +136,4 @@ final class DownloadLiveActivityManager {
         self.activity = nil
     }
 }
+#endif
