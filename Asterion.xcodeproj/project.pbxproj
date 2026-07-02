@@ -48,6 +48,7 @@
 		AABB00222F5700010099DF4E /* EdgeSwipeBackModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00232F5700010099DF4E /* EdgeSwipeBackModifier.swift */; };
 		FADE00012F58000000000001 /* LocalContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00022F58000000000002 /* LocalContentStore.swift */; };
 		FADE00032F58000000000003 /* asterion-content.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = FADE00042F58000000000004 /* asterion-content.sqlite */; };
+		FADE00072F58000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FADE00082F58000000000008 /* Assets.xcassets */; };
 		FADE00052F58000000000005 /* LocalUserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00062F58000000000006 /* LocalUserStore.swift */; };
 /* End PBXBuildFile section */
 
@@ -130,6 +131,7 @@
 		AABB00232F5700010099DF4E /* EdgeSwipeBackModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSwipeBackModifier.swift; sourceTree = "<group>"; };
 		FADE00022F58000000000002 /* LocalContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalContentStore.swift; sourceTree = "<group>"; };
 		FADE00042F58000000000004 /* asterion-content.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = "asterion-content.sqlite"; sourceTree = "<group>"; };
+		FADE00082F58000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Asterion/Assets.xcassets; sourceTree = "<group>"; };
 		FADE00062F58000000000006 /* LocalUserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalUserStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -185,6 +187,7 @@
 			isa = PBXGroup;
 			children = (
 				FADE00042F58000000000004 /* asterion-content.sqlite */,
+				FADE00082F58000000000008 /* Assets.xcassets */,
 				70CC44772F55E13B0099DF4E /* AppStore */,
 				AABB00162F5700010099DF4E /* AsterionWidgetExtension */,
 				70CC447B2F55E13B0099DF4E /* Intents */,
@@ -460,6 +463,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FADE00032F58000000000003 /* asterion-content.sqlite in Resources */,
+				FADE00072F58000000000007 /* Assets.xcassets in Resources */,
 				70CC44A92F55E13B0099DF4E /* screenshots-checklist.md in Resources */,
 				70CC44AA2F55E13B0099DF4E /* metadata.md in Resources */,
 				70CC44AC2F55E13B0099DF4E /* icon-brief.md in Resources */,
