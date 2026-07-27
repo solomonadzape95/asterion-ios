@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Asterion" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

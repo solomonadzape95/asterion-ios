@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Asterion</string>
+    <string name="downloads_channel_name">Downloads</string>
+    <string name="downloads_channel_description">Progress for movies and episodes saved for offline playback</string>
+</resources>

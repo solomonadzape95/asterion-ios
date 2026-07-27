@@ -1,0 +1,10 @@
+<network-security-config>
+    <!--
+      The movies proxy's own HLS rewriting occasionally emits absolute http:// sub-playlist
+      URLs that redirect to https; Android blocks plain HTTP by default (API 28+), so this
+      one host is allowed to attempt cleartext long enough to follow that redirect.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">asterion-movies.cyberverse.cloud</domain>
+    </domain-config>
+</network-security-config>

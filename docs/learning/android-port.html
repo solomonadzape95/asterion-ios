@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Asterion Android Port</title>
+  <style>
+    :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; background: #f3f5f8; color: #1a1b20; --accent: #9c2335; --panel: #ffffff; --border: #cbd0d8; --dim: #5a5f6b; }
+    body { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.65; }
+    h1, h2, h3 { font-family: Georgia, serif; }
+    h3 { font-size: 1.05em; margin-top: 28px; }
+    a, code { color: var(--accent); }
+    p { margin: 14px 0; }
+    .lead { color: var(--dim); font-size: 1.05em; }
+    .panel { padding: 18px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); }
+    .term { border-left: 3px solid var(--accent); padding: 10px 16px; margin: 16px 0; background: var(--panel); border-radius: 0 10px 10px 0; }
+    .term b { display: block; margin-bottom: 4px; }
+    svg { width: 100%; height: auto; display: block; margin: 18px 0; }
+    svg text { fill: currentColor; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .box { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
+    .accentbox { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+    .arrow { stroke: currentColor; stroke-width: 1.5; marker-end: url(#arrowhead); opacity: 0.75; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; font-size: 0.95em; vertical-align: top; }
+    th { background: var(--panel); }
+    .quiz { margin: 20px 0; }
+    .quiz button { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+    .feedback { min-height: 1.5em; color: var(--accent); }
+    @media (prefers-color-scheme: dark) { :root { background: #111318; color: #f0f1f4; --accent: #ff7188; --panel: #1b1e26; --border: #383d48; --dim: #9aa0ac; } }
+  </style>
+</head>
+<body>
+  <p><a href="index.html">← Learning docs</a></p>
+  <h1>The Android port</h1>
+  <p class="lead">This is written for a first mobile app, full stop — no assumed Android, iOS, or general mobile background. Read this before touching AsterionAndroid code.</p>
+
+  <h2>The big picture, before any code</h2>
+  <p>Asterion already exists as two apps: <code>AsterionMac</code> (a Mac app, written in Swift) and an iOS app (also Swift). Both talk to the same backend server over the internet — a service running on Node.js that knows about novels, anime, movies, and football data, and that speaks a language called HTTP: send it a request, it sends back a response, usually as JSON text.</p>
+  <p>An Android app is a third, completely separate app, written in a different language (Kotlin) using different tools, that talks to that <em>same</em> backend. Nothing about the backend needs to change for Android to exist — it's just another client making the same kind of requests a web browser or the Mac app already makes.</p>
+
+  <svg viewBox="0 0 820 160" role="img" aria-label="Three separate apps, one shared backend">
+    <defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor" opacity="0.75"/></marker></defs>
+    <rect class="box" x="20" y="20" width="150" height="50" rx="8"/><text x="95" y="50" text-anchor="middle">AsterionMac</text>
+    <rect class="box" x="20" y="90" width="150" height="50" rx="8"/><text x="95" y="120" text-anchor="middle">Asterion (iOS)</text>
+    <rect class="accentbox" x="250" y="55" width="190" height="50" rx="8"/><text x="345" y="85" text-anchor="middle">AsterionAndroid (new)</text>
+    <line class="arrow" x1="170" y1="45" x2="570" y2="80"/>
+    <line class="arrow" x1="170" y1="115" x2="570" y2="80"/>
+    <line class="arrow" x1="440" y1="80" x2="570" y2="80"/>
+    <rect class="box" x="580" y="55" width="220" height="50" rx="8"/><text x="690" y="85" text-anchor="middle">Backend (Node.js, HTTP)</text>
+  </svg>
+
+  <div class="term">
+    <b>HTTP request/response, in plain terms</b>
+    An app asks the backend a question by sending a small text message over the internet (a "request"): which URL, which action (usually <code>GET</code> to read, <code>POST</code> to write), and sometimes a body of data. The backend answers with a "response": a status number (<code>200</code> means "ok, here's your data"; <code>404</code> means "not found") and usually a JSON body — text formatted like <code>{"ok": true}</code> that both sides agree on how to read.
+  </div>
+
+  <h2>What had to exist before any Asterion code could run</h2>
+  <p>Three pieces of tooling had to be installed on this Mac first, none of which are specific to this app — every Android app needs them:</p>
+  <table>
+    <tr><th>Tool</th><th>What it actually is</th></tr>
+    <tr><td>Android Studio</td><td>The IDE (editor) for Android, but more importantly it bundles the Android SDK — the set of libraries and command-line tools needed to compile Kotlin/Java code into something a phone can run.</td></tr>
+    <tr><td>Gradle</td><td>The <em>build system</em> — see below, this is the concept worth understanding, not just installing.</td></tr>
+    <tr><td>An emulator (AVD)</td><td>A fake Android phone that runs as a program on this Mac, so the app can actually be launched and watched without a real physical phone.</td></tr>
+  </table>
+
+  <h3>What a build system actually does</h3>
+  <p>Source code you write (<code>.kt</code> files) is not what runs on a phone. A phone runs a packaged file called an <strong>APK</strong> — your compiled code, plus every external library your code depends on, plus images and resource files, all zipped together with instructions for how to install and launch it. <strong>Gradle's job is turning your loose source files into that one APK</strong>, automatically, every time you ask it to build.</p>
+  <p>Part of that job is fetching your dependencies — external code you didn't write yourself (a networking library, a UI toolkit) — from the internet, from shared repositories (like an app store, but for code libraries instead of apps). You declare what you need by name and version; Gradle downloads it, checks it's compatible, and links it in.</p>
+
+  <svg viewBox="0 0 820 170" role="img" aria-label="What Gradle does: source plus dependencies becomes one APK">
+    <rect class="box" x="20" y="20" width="160" height="46" rx="8"/><text x="100" y="48" text-anchor="middle">Your .kt source</text>
+    <rect class="box" x="20" y="100" width="160" height="46" rx="8"/><text x="100" y="128" text-anchor="middle">Downloaded libraries</text>
+    <rect class="accentbox" x="330" y="60" width="150" height="46" rx="8"/><text x="405" y="88" text-anchor="middle">Gradle build</text>
+    <rect class="box" x="620" y="60" width="160" height="46" rx="8"/><text x="700" y="88" text-anchor="middle">app-debug.apk</text>
+    <line class="arrow" x1="180" y1="43" x2="330" y2="75"/>
+    <line class="arrow" x1="180" y1="123" x2="330" y2="93"/>
+    <line class="arrow" x1="480" y1="83" x2="620" y2="83"/>
+  </svg>
+
+  <h3>What an emulator proves that a successful build does not</h3>
+  <p>Gradle succeeding only proves the code is well-formed enough to package. It says nothing about whether the app actually starts, draws a screen, or can reach the internet. The emulator is a virtual phone; installing and launching the APK there, and watching what it actually does, is the only way to know the app works — the same reason <code>AsterionMac</code>'s build script has a <code>--verify</code> step that launches the real app, not just compiles it.</p>
+
+  <h2>How the pieces of AsterionAndroid fit together</h2>
+  <p>Four ideas carry almost the entire app so far. Understanding these four generalizes to every screen added later — the specific files are just where these ideas happen to live today.</p>
+
+  <div class="term">
+    <b>1. Compose: the UI is a function of state, not a series of manual updates</b>
+    Older UI frameworks (including Android's original one) work like: create a text label, later reach back into it and manually change its text when something happens. <strong>Jetpack Compose works differently</strong> — you write a function that describes what the screen should look like <em>given the current state</em>, and Compose re-runs that function (called "recomposing") automatically whenever the state it reads changes. You never manually update a label; you just change the state, and the UI catches up.
+  </div>
+
+  <div class="term">
+    <b>2. ViewModel: state that survives the screen being recreated</b>
+    Android can destroy and recreate a screen for reasons that have nothing to do with your logic — rotating the phone, low memory. A <code>ViewModel</code> is a holder object that Android guarantees survives that recreation, so it's the correct place to keep "what is currently true" (like: is the network call loading, succeeded, or failed) separate from the disposable screen itself.
+  </div>
+
+  <div class="term">
+    <b>3. StateFlow: a box that announces when its contents change</b>
+    A <code>StateFlow</code> is a value holder that a UI can "subscribe" to — anyone watching it is automatically notified the instant the value inside changes, which is exactly the trigger Compose needs to know when to recompose. It's the wiring between "the network call finished" and "the screen updates," and nobody has to manually push that update through.
+  </div>
+
+  <div class="term">
+    <b>4. Koin: a directory that hands out shared objects instead of each screen building its own</b>
+    Things like the network client should exist exactly once for the whole app, not be rebuilt by every screen that needs one. Koin is a small library that builds those shared objects once, up front, and hands the same instance to whoever asks — this pattern in general is called <em>dependency injection</em>: instead of a piece of code constructing what it needs itself, something else constructs it and hands it over.
+  </div>
+
+  <h3>Walking through what happens when the app opens</h3>
+  <svg viewBox="0 0 820 460" role="img" aria-label="Sequence from app launch to screen showing backend status">
+    <rect class="box" x="20" y="20" width="220" height="46" rx="8"/><text x="130" y="48" text-anchor="middle">MainActivity starts</text>
+    <rect class="box" x="20" y="96" width="220" height="46" rx="8"/><text x="130" y="124" text-anchor="middle">HomeScreen asks Koin for a HomeViewModel</text>
+    <rect class="box" x="20" y="172" width="220" height="56" rx="8"/><text x="130" y="196" text-anchor="middle">ViewModel sets its</text><text x="130" y="214" text-anchor="middle">StateFlow to "Loading"</text>
+    <rect class="accentbox" x="300" y="172" width="220" height="56" rx="8"/><text x="410" y="196" text-anchor="middle">Retrofit sends</text><text x="410" y="214" text-anchor="middle">GET /health</text>
+    <rect class="box" x="580" y="172" width="220" height="46" rx="8"/><text x="690" y="200" text-anchor="middle">Backend replies 200,</text>
+    <rect class="box" x="580" y="222" width="220" height="30" rx="8"/><text x="690" y="242" text-anchor="middle">{"ok": true}</text>
+    <rect class="box" x="20" y="270" width="220" height="56" rx="8"/><text x="130" y="294" text-anchor="middle">StateFlow updates to</text><text x="130" y="312" text-anchor="middle">"Reachable"</text>
+    <rect class="box" x="20" y="348" width="220" height="46" rx="8"/><text x="130" y="376" text-anchor="middle">Compose recomposes</text>
+    <rect class="accentbox" x="20" y="410" width="220" height="40" rx="8"/><text x="130" y="435" text-anchor="middle">Screen shows "Backend reachable"</text>
+    <line class="arrow" x1="130" y1="66" x2="130" y2="96"/>
+    <line class="arrow" x1="130" y1="142" x2="130" y2="172"/>
+    <line class="arrow" x1="240" y1="200" x2="300" y2="200"/>
+    <line class="arrow" x1="520" y1="196" x2="580" y2="196"/>
+    <line class="arrow" x1="580" y1="240" x2="240" y2="298"/>
+    <line class="arrow" x1="130" y1="326" x2="130" y2="348"/>
+    <line class="arrow" x1="130" y1="394" x2="130" y2="410"/>
+  </svg>
+  <p>Nowhere in that chain does anything say "now update the label." The <code>StateFlow</code> change is enough — Compose is watching it, and reacts automatically. That's the entire point of the reactive pattern above.</p>
+
+  <h2>Adding sign-in</h2>
+  <p>"Auth" (short for authentication) is how the app knows <em>which</em> person is using it, so it can show their library and reading progress instead of a stranger's. Asterion doesn't run its own sign-in system — it uses <strong>Clerk</strong>, a separate hosted service that handles passwords, email codes, and "Sign in with Google/Apple" so this app never has to store a password itself. <code>AsterionMac</code> already uses Clerk; the Android app now signs into the exact same accounts, because both apps point at the same Clerk project.</p>
+
+  <div class="term">
+    <b>Why use a prebuilt sign-in screen instead of building one</b>
+    Auth screens look simple but hide real complexity: validating input, showing the right error for a wrong password vs. an unverified email, handling "forgot password," handling two-factor codes, keeping the session alive correctly. Clerk ships a ready-made screen (<code>AuthView</code>) that already handles all of that, wired directly to Clerk's backend — one line of code (<code>AuthView()</code>) instead of building and maintaining that whole flow by hand.
+  </div>
+
+  <p>The whole decision of what to show the user boils down to one question, asked every time the screen recomposes: <em>is anyone signed in right now?</em> Clerk itself keeps the answer as a <code>StateFlow</code> (the same reactive box from idea 3 above) — nothing app-specific has to track it.</p>
+
+  <svg viewBox="0 0 820 260" role="img" aria-label="Three states the app can be in on launch">
+    <rect class="box" x="20" y="20" width="220" height="50" rx="8"/><text x="130" y="50" text-anchor="middle">Clerk not initialized yet</text>
+    <rect class="box" x="20" y="105" width="220" height="50" rx="8"/><text x="130" y="135" text-anchor="middle">Initialized, no user</text>
+    <rect class="box" x="20" y="190" width="220" height="50" rx="8"/><text x="130" y="220" text-anchor="middle">Initialized, user present</text>
+    <rect class="accentbox" x="330" y="20" width="220" height="50" rx="8"/><text x="440" y="50" text-anchor="middle">Loading spinner</text>
+    <rect class="accentbox" x="330" y="105" width="220" height="50" rx="8"/><text x="440" y="135" text-anchor="middle">AuthView() sign-in screen</text>
+    <rect class="accentbox" x="330" y="190" width="220" height="50" rx="8"/><text x="440" y="220" text-anchor="middle">HomeScreen()</text>
+    <line class="arrow" x1="240" y1="45" x2="330" y2="45"/>
+    <line class="arrow" x1="240" y1="130" x2="330" y2="130"/>
+    <line class="arrow" x1="240" y1="215" x2="330" y2="215"/>
+  </svg>
+  <p>This is exactly the same <code>when { }</code> pattern used for <code>BackendStatus</code> earlier — one state holder, one place that decides what's on screen, no manual UI updates. <code>AsterionRoot</code> reads <code>Clerk.isInitialized</code> and <code>Clerk.userFlow</code> directly; it doesn't need its own ViewModel, because Clerk already exposes shared, observable state — wrapping it in another layer would just be indirection with nothing added.</p>
+
+  <h2>Browsing novels: screens, and moving between them</h2>
+  <p>So far the app has only ever shown one screen at a time, decided once by <code>AsterionRoot</code>. Real apps need many screens, entered and left in response to taps, with a working back button — a novel list, a novel's detail page, a chapter's text. The tool for that is a <strong>navigation graph</strong>: a map of named "routes," each tied to a screen, plus rules for how the app can move between them.</p>
+
+  <svg viewBox="0 0 820 130" role="img" aria-label="The four routes in the app and how they connect">
+    <rect class="box" x="20" y="40" width="150" height="50" rx="8"/><text x="95" y="70" text-anchor="middle">home</text>
+    <rect class="box" x="230" y="40" width="150" height="50" rx="8"/><text x="305" y="70" text-anchor="middle">novels</text>
+    <rect class="box" x="440" y="40" width="180" height="50" rx="8"/><text x="530" y="70" text-anchor="middle">novels/{id}</text>
+    <rect class="accentbox" x="670" y="40" width="130" height="50" rx="8"/><text x="735" y="63" text-anchor="middle">novels/{id}/</text><text x="735" y="79" text-anchor="middle">chapters/{n}</text>
+    <line class="arrow" x1="170" y1="65" x2="230" y2="65"/>
+    <line class="arrow" x1="380" y1="65" x2="440" y2="65"/>
+    <line class="arrow" x1="620" y1="65" x2="670" y2="65"/>
+  </svg>
+  <p>Each route can carry a piece of data in its name — <code>novels/{id}</code> means "show the detail screen, and here is which novel." Tapping a novel in the list calls <code>navController.navigate("novels/935")</code>; the detail screen reads <code>935</code> back out of its own route. The back button is not custom code anywhere in this app — the navigation library keeps a stack of visited routes automatically and pops one off whenever the system back gesture fires.</p>
+
+  <div class="term">
+    <b>Why the list only ever shows a handful of rows in memory</b>
+    A novel catalog could have thousands of entries, but the phone screen only ever shows a dozen or so at once. <code>LazyColumn</code> (used for both the novel list and the chapter list) only builds the rows currently visible on screen, plus a small buffer — as the reader scrolls, rows that leave the top are thrown away and new ones are built for what's newly visible. This is why it's called "lazy": work is deferred until a row is actually about to be seen, which is why the same list pattern stays fast whether there are 20 novels or 20,000.
+  </div>
+
+  <p>Each network response arrives wrapped one level deeper than the actual data — <code>{"data": [...] }</code> for lists, <code>{"data": {...}}</code> for a single item — because the backend also wants room to attach pagination info. Rather than write a separate wrapper class per screen, one generic <code>ListEnvelope&lt;T&gt;</code> and <code>ItemEnvelope&lt;T&gt;</code> unwrap any response shape the same way, whether <code>T</code> is a <code>Novel</code> or a <code>Chapter</code>.</p>
+
+  <p>Chapter text arrives from the backend as HTML (<code>&lt;p&gt;paragraph&lt;/p&gt;</code>), because it was originally scraped from a web page. The reader screen strips every HTML tag with one regular expression before displaying it as plain, serif-styled text — good enough for a first version, though a regex is a blunt tool that would mishandle more complex markup than simple paragraph tags.</p>
+
+  <h2>Watching anime: a second backend, and what streaming video actually is</h2>
+  <p>Anime doesn't come from the same place novels do. Novels are Asterion's own database; anime is scraped live from a separate service (<code>asterion-scraper.cyberverse.cloud</code>) that talks to a third-party anime site on the app's behalf. Same app, same phone, two entirely different backends — the app just needs a second address book entry (a second Retrofit client, pointed at a different base URL) to talk to it.</p>
+
+  <svg viewBox="0 0 820 170" role="img" aria-label="The app now talks to two independent backends">
+    <rect class="accentbox" x="320" y="20" width="180" height="50" rx="8"/><text x="410" y="50" text-anchor="middle">AsterionAndroid</text>
+    <rect class="box" x="20" y="100" width="280" height="50" rx="8"/><text x="160" y="130" text-anchor="middle">asterion-api (novels)</text>
+    <rect class="box" x="520" y="100" width="280" height="50" rx="8"/><text x="660" y="130" text-anchor="middle">asterion-scraper (anime)</text>
+    <line class="arrow" x1="380" y1="70" x2="220" y2="100"/>
+    <line class="arrow" x1="440" y1="70" x2="600" y2="100"/>
+  </svg>
+
+  <div class="term">
+    <b>What a video file actually being "streamed" means</b>
+    Video isn't sent as one giant file the way a chapter's text is. It's split ahead of time into many short segments (a few seconds each) plus one small text file — a <strong>playlist</strong>, ending in <code>.m3u8</code> — listing where every segment lives and in what order. The player downloads the playlist first, then fetches segments one at a time, just far enough ahead to stay smooth. This is why video can start playing in a second or two instead of waiting for the whole episode to download, and why poor connections can drop to a lower-quality playlist mid-episode without restarting playback.
+  </div>
+
+  <p>Media3 (Google's current video library, formerly called ExoPlayer) is the piece that understands <code>.m3u8</code> playlists, fetches segments, decodes video and audio, and hands finished frames to a surface on screen. The player itself lives inside the ViewModel, not the screen, for the same reason <code>HomeViewModel</code> holds backend status — it must survive Compose recomposing the screen around it, and it must be explicitly shut down (<code>player.release()</code>) when the screen is really gone, or it keeps decoding video nobody can see.</p>
+
+  <h3>The bug that revealed how the video is actually protected</h3>
+  <p>The first working version showed a black screen with no crash — the least informative kind of failure, because nothing announces what went wrong. Reading the player's own error log (not just watching the screen) revealed the real story, in two layers:</p>
+  <ol>
+    <li><strong>First symptom: the request for playback links timed out.</strong> The <code>/stream/{id}/{episode}</code> endpoint doesn't look anything up in a database — it visits the anime site live, right at the moment of the request, and hands back whatever links it finds. That can genuinely take longer than a typical API call, so the network client's timeout was raised to match what <code>AsterionMac</code> already relies on for this exact situation.</li>
+    <li><strong>Second symptom, only visible once the first was fixed: the video CDN answered every direct request with <code>403 Forbidden</code>.</strong> The video host checks where a request claims to be coming from (a <code>Referer</code> header) and rejects anything that isn't its own web player — a common anti-hotlinking measure, not a bug in this app. The fix wasn't in the Android code at all: the scraper backend already runs a proxy (<code>/proxy/m3u8</code>) that re-requests the video with the header the CDN expects and relays it back. Routing playback through that proxy URL instead of the raw one — exactly what <code>AsterionMac</code>'s Swift code already does — is what made the picture appear.</li>
+  </ol>
+  <p>Neither layer was visible until the one in front of it was cleared. That's normal, not a sign of doing something wrong — a fixed bug often just reveals the next one waiting behind it, and the way to make progress is to keep reading the actual error, not to guess.</p>
+
+  <svg viewBox="0 0 820 190" role="img" aria-label="Direct playback is blocked; the proxy is not">
+    <rect class="box" x="20" y="20" width="180" height="46" rx="8"/><text x="110" y="48" text-anchor="middle">Player</text>
+    <rect class="box" x="320" y="20" width="220" height="46" rx="8"/><text x="430" y="43" text-anchor="middle">Video CDN</text><text x="430" y="59" text-anchor="middle">(checks Referer)</text>
+    <line class="arrow" x1="200" y1="43" x2="320" y2="43"/>
+    <text x="260" y="35" text-anchor="middle" font-size="12">direct request</text>
+    <text x="260" y="80" text-anchor="middle" font-size="12">403 Forbidden</text>
+    <rect class="box" x="20" y="120" width="180" height="46" rx="8"/><text x="110" y="148" text-anchor="middle">Player</text>
+    <rect class="accentbox" x="270" y="120" width="220" height="46" rx="8"/><text x="380" y="143" text-anchor="middle">Scraper's</text><text x="380" y="159" text-anchor="middle">/proxy/m3u8</text>
+    <rect class="box" x="580" y="120" width="220" height="46" rx="8"/><text x="690" y="148" text-anchor="middle">Video CDN</text>
+    <line class="arrow" x1="200" y1="143" x2="270" y2="143"/>
+    <line class="arrow" x1="490" y1="143" x2="580" y2="143"/>
+    <text x="535" y="135" text-anchor="middle" font-size="12">adds Referer</text>
+    <text x="535" y="175" text-anchor="middle" font-size="12">200 OK</text>
+  </svg>
+
+  <p>The player is intentionally minimal for this first version — it autoplays and shows the picture, but has no custom pause/seek bar yet. Media3's newest Compose controls are "headless" (they hand back play/pause state and expect the caller to draw the button), which is real work worth doing as its own next step rather than folding in unreviewed.</p>
+
+  <h2>Watching movies: a third backend, and a security wall specific to Android</h2>
+  <p>Movies are a third, independent backend (<code>asterion-movies.cyberverse.cloud</code>) — novels, anime, and movies each genuinely live somewhere different. The shape is even simpler than anime's: one request for a title's detail page already includes its playable stream links inline, no second request needed. The video itself is still an HLS playlist proxied the same way anime's was — that concept doesn't need re-explaining, but a new problem showed up in it.</p>
+
+  <div class="term">
+    <b>Android refuses plain HTTP by default — on purpose</b>
+    Since Android 9, apps cannot make an unencrypted (<code>http://</code>) network request unless they explicitly say it's expected, for a specific set of hosts. This exists to stop exactly the kind of security hole plaintext HTTP allows — anyone sharing the same network, like public WiFi, could otherwise read or tamper with the request. An app opts a host back into cleartext deliberately, in one file (a "network security config"), naming precisely which host and never the whole internet — the point is to keep the default safe while making a narrow, visible exception for one known case.
+  </div>
+
+  <p>That "known case" here: the movies proxy sometimes rewrites its own playlist's internal links as <code>http://</code> instead of <code>https://</code> — a bug in that service, not something this app's code produces or controls. Those links do still work; the server immediately redirects them to the correct <code>https://</code> address. Two separate things had to both be true to make that redirect actually succeed:</p>
+  <ol>
+    <li>Android had to be told this one host is allowed to be <em>asked</em> over plain HTTP at all (the network security config) — otherwise the request never leaves the device.</li>
+    <li>The video player had to be told it's allowed to follow a redirect that changes from <code>http://</code> to <code>https://</code> mid-request — by default it refuses that too, as its own, separate safety check.</li>
+  </ol>
+  <p>Skipping either one reproduces the same failure a different way: skip the first, and Android blocks the request outright; skip the second, and the player receives the redirect but declines to follow it. Both had to be fixed together, and the log for each said exactly which one was still missing.</p>
+
+  <svg viewBox="0 0 820 220" role="img" aria-label="Two separate permissions both had to be granted">
+    <rect class="box" x="20" y="20" width="200" height="46" rx="8"/><text x="120" y="48" text-anchor="middle">Player</text>
+    <rect class="box" x="300" y="20" width="240" height="46" rx="8"/><text x="420" y="48" text-anchor="middle">http:// request to movies host</text>
+    <line class="arrow" x1="220" y1="43" x2="300" y2="43"/>
+    <text x="260" y="15" text-anchor="middle" font-size="12">blocked by Android</text>
+    <rect class="box" x="20" y="90" width="200" height="46" rx="8"/><text x="120" y="118" text-anchor="middle">Player</text>
+    <rect class="accentbox" x="300" y="90" width="240" height="46" rx="8"/><text x="420" y="118" text-anchor="middle">http:// allowed for this host</text>
+    <rect class="box" x="620" y="90" width="180" height="46" rx="8"/><text x="710" y="113" text-anchor="middle">301 redirect</text><text x="710" y="129" text-anchor="middle">to https://</text>
+    <line class="arrow" x1="220" y1="113" x2="300" y2="113"/>
+    <line class="arrow" x1="540" y1="113" x2="620" y2="113"/>
+    <text x="580" y="105" text-anchor="middle" font-size="12">refused by player</text>
+    <rect class="box" x="20" y="164" width="200" height="46" rx="8"/><text x="120" y="192" text-anchor="middle">Player</text>
+    <rect class="accentbox" x="300" y="164" width="240" height="46" rx="8"/><text x="420" y="192" text-anchor="middle">http:// allowed for this host</text>
+    <rect class="accentbox" x="620" y="164" width="180" height="46" rx="8"/><text x="710" y="187" text-anchor="middle">301 →</text><text x="710" y="203" text-anchor="middle">followed to https://</text>
+    <line class="arrow" x1="220" y1="187" x2="300" y2="187"/>
+    <line class="arrow" x1="540" y1="187" x2="620" y2="187"/>
+  </svg>
+
+  <h2>Watching football: a fourth shape of API, and a wall this page doesn't fully solve</h2>
+  <p>Football is a fourth backend (<code>asterion-football.cyberverse.cloud</code>), and it wraps its responses in yet another shape: <code>{"success": true, "data": [...] }</code>. Novels used <code>{"data": ..., "meta": ...}</code>. Anime returned a bare array. Movies nested streams inside the show itself. Four features, four different envelope shapes — the real lesson isn't any one of them, it's that <strong>you check each API's actual shape every time</strong>; nothing about "it's JSON" tells you which wrapper a given backend chose.</p>
+
+  <div class="term">
+    <b>GET vs. POST, in plain terms</b>
+    Every request so far has been a <code>GET</code> — "give me data," with everything needed to answer already in the URL. Resolving a match's streams is the first <code>POST</code> in this app: the match's raw source list has to be sent <em>to</em> the server as a request body, because the server doesn't store it — it takes those sources, resolves each one into a real playable link, and hands the results back. <code>GET</code> asks a question; <code>POST</code> asks the server to do something with data you're handing it.
+  </div>
+
+  <p>The schedule listing and stream-resolution both work end-to-end with real data — a real match list, a real <code>POST</code> that returns real per-language, per-quality stream options. The last step is where this page is honest about a real, unresolved wall: these streams are <em>embed</em> URLs — full ad-supported web pages meant to be shown the way a browser shows any other site, not a video file <code>ExoPlayer</code> can decode. That calls for Android's <code>WebView</code>, a real embedded browser engine, instead of the video player used for anime and movies.</p>
+
+  <svg viewBox="0 0 820 130" role="img" aria-label="Two different tools for two different kinds of content">
+    <rect class="box" x="20" y="20" width="220" height="46" rx="8"/><text x="130" y="48" text-anchor="middle">A video file (.m3u8)</text>
+    <rect class="accentbox" x="300" y="20" width="220" height="46" rx="8"/><text x="410" y="48" text-anchor="middle">ExoPlayer decodes it</text>
+    <rect class="box" x="20" y="80" width="220" height="46" rx="8"/><text x="130" y="108" text-anchor="middle">A full web page (embed)</text>
+    <rect class="accentbox" x="300" y="80" width="220" height="46" rx="8"/><text x="410" y="108" text-anchor="middle">WebView renders it</text>
+    <line class="arrow" x1="240" y1="43" x2="300" y2="43"/>
+    <line class="arrow" x1="240" y1="103" x2="300" y2="103"/>
+  </svg>
+
+  <p>Loading the embed page surfaced two real, fixable gaps between a WebView and an actual browser: Android's WebView disables <code>localStorage</code> by default (the page's own script crashed reading from it — a normal browser never disables this), and WebView's default identity string contains a <code>"; wv)"</code> marker that flags it as an embedded view rather than a real browser, which some sites use to refuse to run at all. Fixing both was real progress — but a third, still-unidentified check in this specific embed provider's script keeps refusing to play, showing a generic "remove sandbox attributes" message that doesn't precisely describe what's actually being detected. That third layer is not resolved in this pass.</p>
+
+  <div class="term">
+    <b>Why this is reported honestly instead of marked "done"</b>
+    Two real, understood problems got fixed with real evidence for each. A third one — inside a third-party site's own obfuscated anti-bot script — remains. Calling that "working" because the easier parts succeeded would be the wrong lesson to take from this project. The correct instinct when a fix doesn't fully land is the same one used everywhere else on this page: report exactly how far it actually got, not how far it was supposed to get.
+  </div>
+
+  <h2>Why these specific tools, out of the many options</h2>
+  <p>Every one of these had at least one real alternative. None of the choices below are the only correct answer — they're reasonable defaults for learning, with a genuine runner-up noted.</p>
+  <table>
+    <tr><th>Chosen</th><th>In plain terms</th><th>Runner-up, and why it lost here</th></tr>
+    <tr><td>Retrofit + OkHttp</td><td>Turns "call this URL" into a plain Kotlin function call — you never hand-write the HTTP request text yourself.</td><td>Ktor: more modern, but Retrofit has more tutorials and clearer error messages for a first project.</td></tr>
+    <tr><td>Koin</td><td>The shared-object directory described above, configured with plain Kotlin code.</td><td>Hilt: Google's own choice, but it generates hidden code behind annotations, which is harder to reason about while still learning what dependency injection even is.</td></tr>
+    <tr><td>Jetpack Compose</td><td>UI described as a function of state (see above).</td><td>The old View/XML system: still common in existing large apps, but Google's own direction is Compose now, and starting there avoids learning a system that's being phased out.</td></tr>
+  </table>
+
+  <h2>What actually went wrong while building this, and why it matters</h2>
+  <p>Every one of these was discovered by an error message, not predicted — that's normal, and the fix is usually more informative than getting it right on the first try.</p>
+  <table>
+    <tr><th>What broke</th><th>The underlying lesson</th></tr>
+    <tr><td>Build failed: <code>org.jetbrains.kotlin.android</code> plugin no longer allowed</td><td>Tools evolve out from under tutorials. This project uses a very recent version of the Android build tooling (AGP 9), which absorbed Kotlin support into itself — a plugin that used to be required is now actively forbidden. The fix was to delete it, not add anything.</td></tr>
+    <tr><td>Build failed: duplicate classes from two Clerk libraries</td><td>A library's version number is not always sequential in the way you'd expect. <code>clerk-android</code> version <code>0.1.24</code> looked newer than nothing, but it was actually an abandoned early artifact — the real, current SDK had been renamed and split into two other library names entirely (<code>clerk-android-api</code> and <code>clerk-android-ui</code>) at version <code>1.0.x</code>. The error (two libraries defining the exact same class) was the clue that pointed at this.</td></tr>
+    <tr><td>Build failed: needs API level 37, only 36 installed</td><td>The Android SDK version your code compiles against (<code>compileSdk</code>) is separate from the oldest phone your app supports (<code>minSdk</code>, set to 26 here — Android 8.0, released 2017). Libraries can require a newer <code>compileSdk</code> to build against, even while your app still happily installs on much older real phones.</td></tr>
+    <tr><td>Emulator creation failed: couldn't find a device profile</td><td>An "AVD" (Android Virtual Device) needs two things: a system image (the actual Android OS to run) and a device profile (screen size, RAM — what phone it's pretending to be). The very newest command-line tools had a bug reading device profiles for this exact system image; skipping the device-profile flag entirely let it fall back to a sane default and just work.</td></tr>
+    <tr><td>Clerk's own docs didn't show the prebuilt UI's real function signature</td><td>Documentation can lag behind what a library actually ships. Rather than guess, the downloaded library file itself (an <code>.aar</code>, really a zip of compiled code) was unzipped and inspected directly with a Java bytecode tool (<code>javap</code>) to read <code>AuthView</code>'s real, current parameters straight from what Gradle had already downloaded — the most reliable source available, since it's exactly what the app compiles against.</td></tr>
+    <tr><td>Build failed: <code>TopAppBar</code> is "experimental"</td><td>Some Compose APIs ship marked experimental — usable, but flagged so a library can still change them later without warning. Using one requires explicitly opting in (<code>@OptIn(ExperimentalMaterial3Api::class)</code>) on the function that uses it — an intentional speed bump, not a bug, so nobody adopts a shifting API by accident.</td></tr>
+    <tr><td>Anime playback: black screen, no crash, request to fetch playback links timed out</td><td>A silent failure is the hardest kind — nothing on screen says what's wrong, so the fix has to start from the error log, not the UI. The <code>/stream</code> endpoint scrapes a third-party site live per request rather than reading a database, so it can legitimately take longer than the default 10-second network timeout; the client's timeout was raised to 60 seconds to match what <code>AsterionMac</code> already relies on for this exact endpoint.</td></tr>
+    <tr><td>Anime playback: still a black screen after the timeout fix, now with a logged <code>403 Forbidden</code></td><td>Fixing one error can uncover the next one hiding behind it — that's normal, not a sign of a wrong approach. The video CDN rejects any request that doesn't claim to come from its own web player. The backend already runs a proxy built for exactly this; routing playback through it instead of the raw video URL (matching what <code>AsterionMac</code> already does) resolved it.</td></tr>
+    <tr><td>Movie playback: black screen, "Cleartext HTTP traffic ... not permitted"</td><td>Android blocks plain HTTP by default since Android 9 — a deliberate security default, not a bug to route around broadly. The movies proxy's playlist rewriting occasionally emits an <code>http://</code> link that immediately redirects to <code>https://</code>; the fix was a narrowly-scoped exception for that one host, not disabling the protection everywhere.</td></tr>
+    <tr><td>Movie playback: same symptom persisted even after allowing cleartext for that host</td><td>A second, independent safety check existed one layer deeper: the video player itself refuses to follow a redirect that changes protocol (http→https) unless told to, regardless of what the OS permits. Two separate "no"s had to both become "yes" — permission from Android, and permission from the player — before the redirect could actually complete.</td></tr>
+    <tr><td>Football embed: page crashed reading from storage that returned null</td><td><code>localStorage</code> is something every real browser provides by default; Android's <code>WebView</code> specifically disables it unless told otherwise. A page written assuming normal browser behavior will crash the instant it assumes storage exists. Enabling <code>domStorageEnabled</code> matched WebView's behavior to what the page already assumed.</td></tr>
+    <tr><td>Football embed: still refused to play after the storage fix, showing "remove sandbox attributes"</td><td>WebView's default identity string contains a marker flagging it as an embedded view, which some sites use to refuse outright; removing it was a second real, understood fix. A third check inside this specific provider's own script still blocks playback and was not identified in this pass — reported honestly as unresolved rather than papered over.</td></tr>
+  </table>
+
+  <h2>How this was actually proven to work</h2>
+  <p>A build succeeding is not proof an app works — it only proves the code is well-formed. What actually proved it:</p>
+  <ol>
+    <li>An emulator (virtual phone) was created and started.</li>
+    <li>The real APK was installed onto it and launched, exactly like a phone owner tapping the icon.</li>
+    <li><code>adb logcat</code> — a live stream of everything happening inside the running app — showed a real network call complete: <code>200 https://asterion-api.cyberverse.cloud/health</code>. That URL is the actual production Asterion backend, the same one <code>AsterionMac</code> talks to.</li>
+    <li>A screenshot of the running emulator showed the words "Backend reachable" on screen, matching what the code was supposed to display for that outcome.</li>
+    <li>After wiring Clerk, the app was reinstalled and relaunched the same way; a second screenshot showed a real "Continue to Asterion" sign-in screen — email field, Apple/Google buttons, a "Development mode" badge confirming it's genuinely talking to Clerk's dev servers with the dev key, not just rendering static placeholder text.</li>
+    <li>The novels feature has no test Clerk account available in this environment to sign in with, so the code that decides <em>which</em> screen to show after sign-in (<code>AsterionRoot</code>) was temporarily edited to skip straight past the sign-in check, purely to prove the screens themselves work — then reverted immediately afterward, with a final build confirming the real, auth-gated code still compiles. This is the same thing a developer does locally when testing a screen before the login flow is ready; it was never committed.</li>
+    <li>With that temporary bypass, five real screenshots were taken tapping through the actual live path: Home → Novels (real cover art and titles from the production database) → a novel's detail page (real summary text, real chapter list) → a chapter's full text (HTML correctly stripped to readable paragraphs). Every value on screen came from <code>https://asterion-api.cyberverse.cloud</code>, not placeholder data.</li>
+    <li>Separately, the exact JSON shape of <code>/novels</code>, <code>/novels/:id</code>, and <code>/novels/:id/chapters</code> was fetched directly with <code>curl</code> and compared field-by-field against the Kotlin data classes, to confirm the parsing code matches the real backend contract and not just a guess at its shape.</li>
+    <li>For anime, the same auth-bypass-then-revert technique was used again to tap through Home → Anime catalog (real cover art, real episode counts) → a title's detail page (real synopsis, real episode list) → an episode's actual video, confirmed playing by screenshotting real decoded video frames on screen — not just a "player ready" state with nothing visible. The player's own error log was read directly (not guessed at) to diagnose both the timeout and the 403, and each fix was re-verified by repeating the same tap-through afterward.</li>
+    <li>For movies, the same pattern again: Home → Movies catalog (real posters, runtimes, years) → a title's detail page (real synopsis) → Play, confirmed by a screenshot of an actual decoded video frame — and confirmed a <em>second</em> time after the cleartext fix, since the first attempt at fixing it (allowing cleartext alone) still failed until the player's cross-protocol-redirect setting was also changed. Both fixes were verified by re-running the exact same tap-through, not assumed from reading the code.</li>
+    <li>For football, Home → Football schedule (real fixtures) → a match's resolved stream list (real, per-language, per-quality options from a live <code>POST</code>) both verified with real screenshots showing real data. The final step — actually playing the embed — was tested honestly rather than declared working: two real fixes were verified to change the page's behavior (the storage error and the "aclib" reference error both disappeared from the console log after each respective fix), but the screen itself still shows the provider's own block message on every stream tried, including a different provider entirely. That remaining gap is reported as-is, not hidden.</li>
+  </ol>
+
+  <h2>Quiz</h2>
+  <div class="quiz" data-answer="reuse">
+    <p>Compose re-runs (recomposes) a screen's function automatically. What actually triggers that?</p>
+    <button data-value="timer">A timer that checks the screen every second for changes</button>
+    <button data-value="reuse">A state value the function reads (like a StateFlow) changing</button>
+    <button data-value="manual">A manual call the developer must remember to make</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="viewmodel">
+    <p>The phone rotates and Android recreates the screen. Where does "is the network call still loading" need to live to survive that?</p>
+    <button data-value="composable">Inside a local variable in the Compose function</button>
+    <button data-value="viewmodel">Inside the ViewModel</button>
+    <button data-value="activity">Inside a field on MainActivity</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="proof">
+    <p>Which step in this project was the actual proof the app works, not just that it compiles?</p>
+    <button data-value="gradle">Gradle finishing an assembleDebug build with no errors</button>
+    <button data-value="proof">Logcat showing a real 200 response from the production backend on a running emulator</button>
+    <button data-value="kotlin">The Kotlin compiler accepting the Retrofit interface's syntax</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="version">
+    <p>Why did depending on <code>clerk-android</code> version <code>0.1.24</code> cause a duplicate-class build failure?</p>
+    <button data-value="version">That artifact was an abandoned old name; the current SDK moved to different artifact names at 1.0.x, and both got pulled in</button>
+    <button data-value="network">The Clerk servers were temporarily unreachable during the build</button>
+    <button data-value="kotlin">Two different Kotlin compiler versions were active at once</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="sdksplit">
+    <p><code>compileSdk</code> was raised to 37 while <code>minSdk</code> stayed at 26. What does that actually mean for who can install the app?</p>
+    <button data-value="sdksplit">Nothing changes for installs — compileSdk only affects what the code builds against; minSdk still controls the oldest supported phone</button>
+    <button data-value="raised">The app now requires phones running Android API 37 or newer to install</button>
+    <button data-value="broken">Phones on API 26 through 36 can no longer install the app</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="shared">
+    <p><code>AsterionRoot</code> reads <code>Clerk.isInitialized</code> and <code>Clerk.userFlow</code> directly, with no app-specific ViewModel wrapping them. Why is that fine here?</p>
+    <button data-value="shared">They're already shared, observable StateFlows — a wrapping ViewModel would just add indirection with nothing new</button>
+    <button data-value="restriction">ViewModels aren't allowed above the first screen shown after MainActivity starts</button>
+    <button data-value="internal">AuthView needs direct access to Clerk's internal state and breaks if read through a ViewModel</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="bytecode">
+    <p>Clerk's own docs didn't show <code>AuthView</code>'s real parameters. What actually made the final code trustworthy?</p>
+    <button data-value="bytecode">The already-downloaded compiled library file was inspected directly to read its real, current signature</button>
+    <button data-value="tutorial">A pattern from an unrelated tutorial for a different Clerk platform was reused as-is</button>
+    <button data-value="compiler">The Kotlin compiler would silently substitute correct defaults regardless of what was written</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="lazy">
+    <p>The novel catalog has thousands of entries. Why does <code>LazyColumn</code> stay fast without loading them all into memory at once?</p>
+    <button data-value="lazy">It only builds rows currently visible on screen (plus a small buffer), discarding and rebuilding them as the user scrolls</button>
+    <button data-value="server">The backend only ever sends ten novels no matter what is requested</button>
+    <button data-value="cache">Compose caches every row's rendered pixels permanently after the first scroll</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="revert">
+    <p>The auth gate was temporarily bypassed to screenshot the novels screens without a test account. What made that an acceptable way to verify the feature, rather than cutting a corner?</p>
+    <button data-value="revert">The bypass was reverted immediately after, and a fresh build confirmed the real, auth-gated code still compiles and ships unchanged</button>
+    <button data-value="permanent">The bypass was left in place so the app is easier to demo later</button>
+    <button data-value="unnecessary">Skipping verification entirely would have been just as reliable, since the build already succeeded</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="segments">
+    <p>Why can a video start playing within a second or two instead of waiting for the whole episode to download first?</p>
+    <button data-value="segments">It's split into many short segments listed in a playlist file, and the player only needs the first few before starting</button>
+    <button data-value="compressed">The entire episode is compressed small enough to download instantly on any connection</button>
+    <button data-value="cached">The device already has every episode cached locally ahead of time</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="referer">
+    <p>The direct video URL returned <code>403 Forbidden</code> even though the link itself was correct. Why?</p>
+    <button data-value="referer">The CDN checks where the request claims to come from and rejects anything that isn't its own web player</button>
+    <button data-value="expired">The link had already expired by the time the player requested it</button>
+    <button data-value="wrongtype">The MIME type set on the MediaItem didn't match the actual video format</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="ondevice">
+    <p>Why does Android refuse a plain <code>http://</code> request by default, rather than just letting every app decide for itself?</p>
+    <button data-value="ondevice">Unencrypted traffic can be read or altered by anyone sharing the same network, so the safe behavior is the default and exceptions must be explicit</button>
+    <button data-value="speed">Plain HTTP is measurably slower than HTTPS on modern phones</button>
+    <button data-value="store">Apps using HTTP are automatically rejected from the Play Store, so the OS pre-checks for it</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="twolayers">
+    <p>Allowing cleartext traffic for the movies host alone did not fix playback. What was still missing?</p>
+    <button data-value="twolayers">The player itself also refuses to follow a redirect that changes from http to https unless explicitly told to</button>
+    <button data-value="cache">The app's cached DNS entry for the host was stale and needed a restart</button>
+    <button data-value="wrongdomain">The network security config was scoped to the wrong subdomain</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="post">
+    <p>Every other request in this app is a <code>GET</code>. Why does resolving a match's streams need a <code>POST</code> instead?</p>
+    <button data-value="post">The server doesn't store the match's raw sources; the client sends them in the request body so the server can resolve them</button>
+    <button data-value="speed">POST requests transfer data faster than GET for large responses</button>
+    <button data-value="auth">Only POST requests are allowed to reach third-party scraping backends</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="webview">
+    <p>Football streams are shown in a <code>WebView</code> instead of <code>ExoPlayer</code>, unlike anime and movies. Why?</p>
+    <button data-value="webview">The stream is a full ad-supported web page meant to be browsed, not a video file to decode</button>
+    <button data-value="license">WebView is cheaper to license than Media3 for live sports content</button>
+    <button data-value="quality">WebView produces higher video quality than ExoPlayer for live streams</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+  <div class="quiz" data-answer="honest">
+    <p>Football playback still doesn't work after two real, verified fixes. What does this page do about that?</p>
+    <button data-value="honest">States plainly that a third, unidentified check still blocks it, rather than calling the feature done</button>
+    <button data-value="hide">Describes only the two successful fixes and omits the remaining failure</button>
+    <button data-value="claim">Assumes the third layer is also fixed, since the first two both worked</button>
+    <p class="feedback" aria-live="polite"></p>
+  </div>
+
+  <script>
+    document.querySelectorAll('.quiz').forEach((quiz) => {
+      quiz.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', () => {
+          const correct = button.dataset.value === quiz.dataset.answer;
+          quiz.querySelector('.feedback').textContent = correct
+            ? 'Correct.'
+            : 'Not quite — re-read the paragraph just above this question.';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
