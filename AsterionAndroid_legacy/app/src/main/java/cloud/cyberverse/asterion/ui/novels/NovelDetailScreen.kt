@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.NovelDownloadRepository
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.Novel
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
@@ -118,10 +119,12 @@ fun NovelDetailScreen(
         when (val current = state) {
             is NovelDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
 
-            is NovelDetailState.Error -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load this novel: ${current.message}") }
+            is NovelDetailState.Error -> ErrorState(
+                message = current.message,
+                // A person tapping retry wants a fresh attempt, not whatever we cached.
+                onRetry = { viewModel.load(forceRefresh = true) },
+                modifier = Modifier.padding(padding),
+            )
 
             is NovelDetailState.Loaded -> {
                 var visibleChapterCount by rememberSaveable(current.chapters.size) {

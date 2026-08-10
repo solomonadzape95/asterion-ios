@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.Chapter
+import cloud.cyberverse.asterion.data.cache.NovelContentCache
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.SaveProgressRequest
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
 import cloud.cyberverse.asterion.data.remote.fetchAllChapters
@@ -29,6 +31,7 @@ sealed interface ChapterReaderState {
 
 class ChapterReaderViewModel(
     private val api: AsterionApiService,
+    private val cache: NovelContentCache,
     private val novelId: String,
     private val chapterNumber: Int,
     private val context: Context,
@@ -54,16 +57,17 @@ class ChapterReaderViewModel(
             }
         }
 
+        load()
+    }
+
+    fun load() {
+        _state.value = ChapterReaderState.Loading
         viewModelScope.launch {
             // A chapter downloaded for offline reading lives at a deterministic path - checking
             // it directly means offline reading works without needing a separate index lookup.
             val downloadedChapter = readDownloadedChapter(novelId, chapterNumber)
             if (downloadedChapter != null) {
-                val allChapters = try {
-                    api.fetchAllChapters(novelId)
-                } catch (_: Exception) {
-                    emptyList()
-                }
+                val allChapters = chapterList()
                 _state.value = ChapterReaderState.Loaded(downloadedChapter, allChapters, isOffline = true)
                 return@launch
             }
@@ -72,22 +76,30 @@ class ChapterReaderViewModel(
                 val chapter = api.chapter(novelId, chapterNumber).data
                 // The full list only powers the picker/prev-next nav - if it fails to load,
                 // the chapter itself already succeeded, so don't fail the whole screen over it.
-                val allChapters = try {
-                    api.fetchAllChapters(novelId)
-                } catch (_: Exception) {
-                    emptyList()
-                }
+                val allChapters = chapterList()
                 ChapterReaderState.Loaded(chapter, allChapters)
             } catch (error: Exception) {
                 val fallback = readDownloadedChapter(novelId, chapterNumber)
                 if (fallback != null) {
                     ChapterReaderState.Loaded(fallback, emptyList(), isOffline = true)
                 } else {
-                    ChapterReaderState.Error(error.message ?: "Unknown error")
+                    ChapterReaderState.Error(error.userMessage())
                 }
             }
         }
     }
+
+    /**
+     * The picker and prev/next nav need the whole chapter list, but this screen is recreated on
+     * every chapter navigation, so fetching it here re-ran the full page crawl per chapter. Shared
+     * with the detail screen through the cache; failure is non-fatal because the chapter itself
+     * has already loaded.
+     */
+    private suspend fun chapterList(): List<Chapter> =
+        cache.chapters(novelId)
+            ?: runCatching { api.fetchAllChapters(novelId) }
+                .onSuccess { cache.putChapters(novelId, it) }
+                .getOrDefault(emptyList())
 
     /** Reports the reader's current scroll position within this chapter, synced to the account so
      * "Continue Chapter N" on the novel's detail page reflects where the reader actually is. */

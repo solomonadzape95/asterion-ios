@@ -3,6 +3,8 @@ package cloud.cyberverse.asterion.ui.novels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.AddToLibraryRequest
+import cloud.cyberverse.asterion.data.cache.NovelContentCache
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.Novel
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
@@ -28,15 +30,30 @@ sealed interface NovelDetailState {
     data class Error(val message: String) : NovelDetailState
 }
 
-class NovelDetailViewModel(private val api: AsterionApiService, private val novelId: String) : ViewModel() {
+class NovelDetailViewModel(
+    private val api: AsterionApiService,
+    private val cache: NovelContentCache,
+    private val novelId: String,
+) : ViewModel() {
     private val _state = MutableStateFlow<NovelDetailState>(NovelDetailState.Loading)
     val state: StateFlow<NovelDetailState> = _state.asStateFlow()
 
     init {
+        load()
+    }
+
+    /** [forceRefresh] skips the cache, for an explicit pull-to-refresh or retry. */
+    fun load(forceRefresh: Boolean = false) {
+        _state.value = NovelDetailState.Loading
         viewModelScope.launch {
+            if (forceRefresh) cache.invalidate(novelId)
             _state.value = try {
-                val novel = api.novel(novelId).data
-                val chapters = api.fetchAllChapters(novelId)
+                val novel = cache.novel(novelId)
+                    ?: api.novel(novelId).data.also { cache.putNovel(novelId, it) }
+                // The expensive one: without the cache this is a sequential crawl of every
+                // chapter page before the screen renders anything at all.
+                val chapters = cache.chapters(novelId)
+                    ?: api.fetchAllChapters(novelId).also { cache.putChapters(novelId, it) }
                 // Bookmark/progress sync is best-effort: a signed-in reader without network (or
                 // hitting an auth hiccup) should still see the novel, just without sync state -
                 // both run in parallel with the chapter list already loaded.
@@ -57,7 +74,7 @@ class NovelDetailViewModel(private val api: AsterionApiService, private val nove
                     )
                 }
             } catch (error: Exception) {
-                NovelDetailState.Error(error.message ?: "Unknown error")
+                NovelDetailState.Error(error.userMessage())
             }
         }
     }

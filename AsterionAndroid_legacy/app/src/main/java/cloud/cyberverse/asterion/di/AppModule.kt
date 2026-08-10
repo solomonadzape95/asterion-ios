@@ -1,12 +1,14 @@
 package cloud.cyberverse.asterion.di
 
 import cloud.cyberverse.asterion.BuildConfig
+import cloud.cyberverse.asterion.data.cache.NovelContentCache
 import cloud.cyberverse.asterion.data.download.NovelDownloadRepository
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
 import cloud.cyberverse.asterion.data.local.DownloadIndexStore
 import cloud.cyberverse.asterion.data.remote.AnimeApiService
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
 import cloud.cyberverse.asterion.data.remote.ClerkAuthInterceptor
+import cloud.cyberverse.asterion.data.remote.RetryInterceptor
 import cloud.cyberverse.asterion.data.sync.MediaAccountRepository
 import cloud.cyberverse.asterion.ui.anime.AnimeCatalogViewModel
 import cloud.cyberverse.asterion.ui.anime.AnimeDetailViewModel
@@ -26,6 +28,8 @@ import cloud.cyberverse.asterion.ui.novels.NovelsListViewModel
 import cloud.cyberverse.asterion.ui.novels.ReaderPreferences
 import cloud.cyberverse.asterion.ui.settings.AppSettingsPreferences
 import kotlinx.serialization.json.Json
+import java.io.File
+import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -44,6 +48,9 @@ private const val ANIME_BASE_URL = "https://asterion-scraper.cyberverse.cloud/ap
 private const val MOVIES_BASE_URL = "https://asterion-movies.cyberverse.cloud/api/"
 private const val FOOTBALL_BASE_URL = "https://asterion-football.cyberverse.cloud/api/"
 
+/** Chapter bodies dominate this; 50MB holds a lot of text and a full novel read offline. */
+private const val HTTP_CACHE_SIZE_BYTES = 50L * 1024 * 1024
+
 val networkModule = module {
     single {
         HttpLoggingInterceptor().apply {
@@ -61,11 +68,27 @@ val networkModule = module {
             // Only attaches auth to the main Asterion API (host-checked inside the interceptor) -
             // the anime/movie/football scraper services share this same client and stay
             // unauthenticated.
+            // Outermost, so every retry attempt re-enters the auth interceptor below and signs
+            // with a freshly read Clerk token instead of replaying the first one, and so each
+            // attempt shows up separately in the log.
+            .addInterceptor(RetryInterceptor())
             .addInterceptor(ClerkAuthInterceptor(URI(BuildConfig.API_BASE_URL).host))
             .addInterceptor(get<HttpLoggingInterceptor>())
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
+            // Without an explicit write timeout OkHttp applies a 10s default, which is tighter
+            // than the read timeout it sits alongside.
+            .writeTimeout(60, TimeUnit.SECONDS)
+            // The ceiling that was missing entirely: connect/read timeouts bound individual
+            // socket operations, so a slow-but-trickling response could run unbounded. This caps
+            // the whole call, retries included, at something a person will actually wait for.
+            .callTimeout(90, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
+            // A real disk cache, paired with the Cache-Control headers the API now sends. Reopening
+            // a novel used to re-fetch every chapter page from scratch; served from here it is
+            // local-disk fast. Chapter bodies are immutable and cached for a day, so re-reading
+            // works with no network at all.
+            .cache(Cache(File(androidContext().cacheDir, "http_cache"), HTTP_CACHE_SIZE_BYTES))
             .build()
     }
     single {
@@ -103,6 +126,8 @@ val networkModule = module {
     single { ReaderPreferences(androidContext()) }
     single { AppSettingsPreferences(androidContext()) }
     single { MediaAccountRepository(get()) }
+    // Single instance app-wide: the detail screen and the reader share one chapter list.
+    single { NovelContentCache() }
 }
 
 val downloadModule = module {
@@ -115,8 +140,8 @@ val downloadModule = module {
 val viewModelModule = module {
     viewModel { HomeViewModel(get(), get(), get(), get()) }
     viewModel { NovelsListViewModel(get()) }
-    viewModel { (novelId: String) -> NovelDetailViewModel(get(), novelId) }
-    viewModel { (novelId: String, chapterNumber: Int) -> ChapterReaderViewModel(get(), novelId, chapterNumber, androidContext()) }
+    viewModel { (novelId: String) -> NovelDetailViewModel(get(), get(), novelId) }
+    viewModel { (novelId: String, chapterNumber: Int) -> ChapterReaderViewModel(get(), get(), novelId, chapterNumber, androidContext()) }
     viewModel { AnimeCatalogViewModel(get()) }
     viewModel { (slug: String) -> AnimeDetailViewModel(get(), get(), slug) }
     viewModel { (animeId: String, episodeNumber: Int, showTitle: String, showImageUrl: String?) ->
