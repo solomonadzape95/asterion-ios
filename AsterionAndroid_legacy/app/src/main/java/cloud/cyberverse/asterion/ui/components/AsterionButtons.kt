@@ -1,5 +1,12 @@
 package cloud.cyberverse.asterion.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.ripple
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -125,5 +132,58 @@ private fun ButtonContent(text: String, icon: ImageVector?) {
         } else {
             Text(text = text, style = MaterialTheme.typography.labelLarge)
         }
+    }
+}
+
+/**
+ * A square-ish pill for a secondary action that stands beside a primary button - save, download,
+ * share. Matches [AsterionOutlinedButton]'s surface so a row of actions reads as one control group.
+ *
+ * [selected] flips it to the accent, for actions with an on/off state like bookmarking.
+ */
+@Composable
+fun AsterionIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    selected: Boolean = false,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val container by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "iconButtonContainer",
+    )
+    val tint by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onBackground
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "iconButtonTint",
+    )
+
+    Box(
+        modifier = modifier
+            .size(ButtonHeight)
+            .pressScale(interactionSource)
+            .clip(PillShape)
+            .background(container)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(22.dp))
     }
 }

@@ -56,6 +56,16 @@ import cloud.cyberverse.asterion.ui.components.ExpandableSynopsis
 import cloud.cyberverse.asterion.ui.components.SectionHeader
 import cloud.cyberverse.asterion.ui.downloads.DownloadPlannerSheet
 import cloud.cyberverse.asterion.ui.downloads.PlannerUnit
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import cloud.cyberverse.asterion.ui.components.AsterionIconButton
+import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
+import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
+import cloud.cyberverse.asterion.ui.theme.PillShape
 import cloud.cyberverse.asterion.ui.theme.genreColor
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -94,7 +104,10 @@ fun NovelDetailScreen(
                 title = if (showTitleInBar) loaded?.novel?.title else null,
                 onBack = onNavigateBack,
                 actions = {
-                    if (loaded != null) {
+                    // These live in the hero now. Duplicating them in the bar while the hero is
+                    // visible puts the same two controls on screen twice; they reappear here only
+                    // once the hero has scrolled away and taken them with it.
+                    if (loaded != null && showTitleInBar) {
                         IconButton(onClick = viewModel::toggleBookmark, enabled = !loaded.isBookmarkUpdating) {
                             Icon(
                                 if (loaded.isBookmarked) PhosphorIcons.Bookmark else PhosphorIcons.BookmarkBorder,
@@ -154,7 +167,11 @@ fun NovelDetailScreen(
                             novel = current.novel,
                             totalChapters = current.totalChapters,
                             resumeChapter = resumeChapter,
+                            isBookmarked = current.isBookmarked,
+                            isBookmarkUpdating = current.isBookmarkUpdating,
                             onStartReading = { (resumeChapter ?: current.chapters.firstOrNull())?.let(onChapterClick) },
+                            onToggleBookmark = viewModel::toggleBookmark,
+                            onDownload = { showPlanner = true },
                         )
                     }
 
@@ -239,58 +256,121 @@ private fun NovelHero(
     novel: Novel,
     totalChapters: Int,
     resumeChapter: Chapter?,
+    isBookmarked: Boolean,
+    isBookmarkUpdating: Boolean,
     onStartReading: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onDownload: () -> Unit,
 ) {
-    Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        AsterionAsyncImage(
-            model = novel.imageUrl,
-            contentDescription = null,
+    Column {
+        BlurredArtworkBanner(model = novel.imageUrl, height = 300.dp) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // The sharp cover against its own blurred enlargement is what gives the header
+                // depth; a shadow separates it from the wash behind it.
+                AsterionAsyncImage(
+                    model = novel.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .width(116.dp)
+                        .aspectRatio(2f / 3f)
+                        .shadow(18.dp, RoundedCornerShape(CoverCornerRadius), clip = false)
+                        .clip(RoundedCornerShape(CoverCornerRadius))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                )
+
+                Column(Modifier.weight(1f).padding(bottom = 6.dp)) {
+                    Text(
+                        novel.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    novel.author?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        // Metadata scrolls sideways rather than wrapping or truncating - a novel with a long genre
+        // plus a six-figure view count will not fit on one line of a phone.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
-                .width(156.dp)
-                .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        )
-        Text(
-            novel.title,
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 18.dp),
-        )
-        novel.author?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
-            )
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+        ) {
+            novel.genres?.firstOrNull()?.let { genre ->
+                MetadataChip(text = genre, tint = genreColor(novel.genres), emphasised = true)
+            }
+            if (totalChapters > 0) MetadataChip(PhosphorIcons.AutoStories, "$totalChapters chapters")
+            novel.rating?.let { MetadataChip(PhosphorIcons.Star, it.toString()) }
+            novel.views?.let { MetadataChip(PhosphorIcons.Visibility, it) }
+            novel.status?.let { MetadataChip(text = it) }
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 20.dp).padding(top = 14.dp, bottom = 4.dp),
         ) {
-            novel.genres?.firstOrNull()?.let { genre ->
-                MetadataChip(icon = null, text = genre, tint = genreColor(novel.genres))
-            }
-            if (totalChapters > 0) MetadataChip(PhosphorIcons.AutoStories, "$totalChapters ch.")
-            novel.rating?.let { MetadataChip(PhosphorIcons.Star, it.toString()) }
-            novel.views?.let { MetadataChip(PhosphorIcons.Visibility, it) }
+            AsterionFilledButton(
+                text = if (resumeChapter != null) "Continue Ch. ${resumeChapter.chapterNumber}" else "Start Reading",
+                icon = PhosphorIcons.AutoStories,
+                onClick = onStartReading,
+                modifier = Modifier.weight(1f),
+            )
+            AsterionIconButton(
+                icon = if (isBookmarked) PhosphorIcons.Bookmark else PhosphorIcons.BookmarkBorder,
+                contentDescription = if (isBookmarked) "Remove from library" else "Save to library",
+                onClick = onToggleBookmark,
+                enabled = !isBookmarkUpdating,
+                selected = isBookmarked,
+            )
+            AsterionIconButton(
+                icon = PhosphorIcons.Download,
+                contentDescription = "Download chapters",
+                onClick = onDownload,
+            )
         }
-
-        AsterionFilledButton(
-            text = if (resumeChapter != null) "Continue Chapter ${resumeChapter.chapterNumber}" else "Start Reading",
-            icon = PhosphorIcons.AutoStories,
-            onClick = onStartReading,
-            modifier = Modifier.padding(top = 22.dp).fillMaxWidth(),
-        )
     }
 }
 
+/**
+ * A pill-shaped metadata tag. This used to be a bare Row of icon-plus-text with no background,
+ * which is why the hero read as loose text rather than as structured metadata.
+ */
 @Composable
-private fun MetadataChip(icon: androidx.compose.ui.graphics.vector.ImageVector?, text: String, tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        icon?.let { Icon(it, contentDescription = null, tint = tint, modifier = Modifier.width(16.dp)) }
-        Text(text, style = MaterialTheme.typography.labelMedium, color = tint)
+private fun MetadataChip(
+    icon: ImageVector? = null,
+    text: String,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    emphasised: Boolean = false,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = Modifier
+            .clip(PillShape)
+            .background(
+                if (emphasised) tint.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+    ) {
+        icon?.let { Icon(it, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp)) }
+        Text(text, style = MaterialTheme.typography.labelMedium, color = tint, maxLines = 1)
     }
 }

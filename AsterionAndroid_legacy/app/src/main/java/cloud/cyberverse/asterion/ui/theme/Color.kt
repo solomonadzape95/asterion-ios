@@ -2,17 +2,21 @@ package cloud.cyberverse.asterion.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Matches AsterionMac's Support/Theme.swift color(red: 0.612, green: 0.137, blue: 0.208).
-val AsterionCrimson = Color(0xFF9C2335)
-val AsterionCrimsonDark = Color(0xFFFF7188)
+// A muted rosewood rather than a saturated crimson. The old dark accent (0xFFFF7188) was a fully
+// saturated pink against a near-black page - loud enough that it pulled attention away from cover
+// art and headings, which are what should carry a reading app. These sit in the same family, just
+// desaturated, and both clear WCAG AA: 6.6:1 on the dark page, 5.1:1 for white text on the light
+// fill.
+val AsterionCrimson = Color(0xFF9E5A64)
+val AsterionCrimsonDark = Color(0xFFC98590)
 
 // Material3 assigns every accent role (primaryContainer, secondary, tertiary, ...) its own baseline
 // purple by default unless explicitly overridden - these keep every accent role in the same crimson
 // family so nothing (chips, selected states, etc.) ever leaks an off-brand colour.
-val AsterionLightAccentContainer = Color(0xFFF4D9DC)
-val AsterionLightOnAccentContainer = Color(0xFF5C0E1A)
-val AsterionDarkAccentContainer = Color(0xFF4A1620)
-val AsterionDarkOnAccentContainer = Color(0xFFFFD9DE)
+val AsterionLightAccentContainer = Color(0xFFEFDFE1)
+val AsterionLightOnAccentContainer = Color(0xFF4A2A31)
+val AsterionDarkAccentContainer = Color(0xFF3A2A2F)
+val AsterionDarkOnAccentContainer = Color(0xFFE9D3D7)
 
 val AsterionLightBackground = Color(0xFFF7F5F1)
 val AsterionLightSurface = Color(0xFFFFFFFF)
