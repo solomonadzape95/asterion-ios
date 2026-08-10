@@ -59,7 +59,10 @@ import cloud.cyberverse.asterion.ui.components.AsterionSearchField
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import cloud.cyberverse.asterion.ui.components.AsterionWordmark
 import cloud.cyberverse.asterion.ui.components.CoverCard
+import cloud.cyberverse.asterion.ui.components.EmptyState
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.ui.components.SectionHeader
+import cloud.cyberverse.asterion.ui.common.SearchUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -70,6 +73,7 @@ private const val AUTO_ADVANCE_DELAY_MS = 4500L
 @Composable
 fun MovieCatalogScreen(onTitleClick: (MovieTitle) -> Unit, viewModel: MovieCatalogViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
+    val searchState by viewModel.searchState.collectAsState()
     val discover by viewModel.discover.collectAsState()
     val query by viewModel.query.collectAsState()
     val isSearching = query.isNotBlank()
@@ -83,30 +87,52 @@ fun MovieCatalogScreen(onTitleClick: (MovieTitle) -> Unit, viewModel: MovieCatal
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            when (val current = state) {
-                is MovieCatalogState.Loading -> AsterionLoadingBox()
+            if (isSearching) {
+                when (val current = searchState) {
+                    is SearchUiState.Idle, is SearchUiState.Loading -> AsterionLoadingBox()
 
-                is MovieCatalogState.Error -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { Text("Couldn't load movies: ${current.message}") }
+                    is SearchUiState.Error -> ErrorState(
+                        message = current.message,
+                        onRetry = viewModel::retrySearch,
+                    )
 
-                is MovieCatalogState.Loaded -> if (current.titles.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            if (isSearching) "No movies match \"$query\"" else "No movies found",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    is SearchUiState.Loaded -> if (current.results.isEmpty()) {
+                        EmptyState("No movies match “$query”")
+                    } else {
+                        TitleGrid(
+                            current.results,
+                            header = "Search Results" to "Titles matching your search.",
+                            onTitleClick = onTitleClick,
                         )
                     }
-                } else if (isSearching) {
-                    TitleGrid(current.titles, header = "Search Results" to "Titles matching your search.", onTitleClick = onTitleClick)
-                } else {
-                    MovieDiscoverScreen(
-                        trending = current.titles,
-                        discover = discover,
-                        onLoadMore = viewModel::loadMoreDiscover,
-                        onTitleClick = onTitleClick,
-                    )
+                }
+            } else {
+                when (val current = state) {
+                    is MovieCatalogState.Loading -> AsterionLoadingBox()
+
+                    // Only take over the screen when there is genuinely nothing to show. If the
+                    // discover grid loaded, a failed "trending" call shouldn't blank it.
+                    is MovieCatalogState.Error -> if (discover.titles.isEmpty()) {
+                        ErrorState(message = current.message, onRetry = viewModel::load)
+                    } else {
+                        MovieDiscoverScreen(
+                            trending = emptyList(),
+                            discover = discover,
+                            onLoadMore = viewModel::loadMoreDiscover,
+                            onTitleClick = onTitleClick,
+                        )
+                    }
+
+                    is MovieCatalogState.Loaded -> if (current.titles.isEmpty() && discover.titles.isEmpty()) {
+                        EmptyState("No movies found")
+                    } else {
+                        MovieDiscoverScreen(
+                            trending = current.titles,
+                            discover = discover,
+                            onLoadMore = viewModel::loadMoreDiscover,
+                            onTitleClick = onTitleClick,
+                        )
+                    }
                 }
             }
         }

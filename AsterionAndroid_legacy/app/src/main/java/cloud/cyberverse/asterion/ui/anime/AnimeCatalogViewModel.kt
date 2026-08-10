@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.AnimeTitle
 import cloud.cyberverse.asterion.data.remote.AnimeApiService
+import cloud.cyberverse.asterion.ui.common.SearchUiState
+import cloud.cyberverse.asterion.ui.common.launchSearch
+import cloud.cyberverse.asterion.ui.common.userMessage
 import java.util.Calendar
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,8 +34,6 @@ data class AnimeDiscoverState(
     val canLoadMore: Boolean = true,
 )
 
-private const val SEARCH_DEBOUNCE_MS = 400L
-
 /** AsterionMac's AnimeSeason.current(): Jan-Mar winter, Apr-Jun spring, Jul-Sep summer, else fall. */
 fun currentAnimeSeason(): Pair<String, Int> {
     val calendar = Calendar.getInstance()
@@ -52,6 +53,10 @@ class AnimeCatalogViewModel(private val api: AnimeApiService) : ViewModel() {
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
+
+    /** Separate from [state] so a failed search can't blank the seasonal shelf behind it. */
+    private val _searchState = MutableStateFlow<SearchUiState<AnimeTitle>>(SearchUiState.Idle)
+    val searchState: StateFlow<SearchUiState<AnimeTitle>> = _searchState.asStateFlow()
 
     private val _seasonal = MutableStateFlow<AnimeSeasonalState>(AnimeSeasonalState.Loading)
     val seasonal: StateFlow<AnimeSeasonalState> = _seasonal.asStateFlow()
@@ -90,6 +95,8 @@ class AnimeCatalogViewModel(private val api: AnimeApiService) : ViewModel() {
                     isLoadingMore = false,
                     canLoadMore = newTitles.isNotEmpty(),
                 )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
                 current.copy(isLoadingMore = false, canLoadMore = false)
             }
@@ -99,20 +106,23 @@ class AnimeCatalogViewModel(private val api: AnimeApiService) : ViewModel() {
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            load(newQuery)
-        }
+        searchJob = launchSearch(_searchState, newQuery) { api.search(it) }
     }
 
-    private fun load(search: String = "") {
+    fun retrySearch() {
+        searchJob?.cancel()
+        searchJob = launchSearch(_searchState, _query.value, debounceMs = 0L) { api.search(it) }
+    }
+
+    fun load() {
         _state.value = AnimeCatalogState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val titles = if (search.isBlank()) api.popular() else api.search(search.trim())
-                AnimeCatalogState.Loaded(titles)
+                AnimeCatalogState.Loaded(api.popular())
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
-                AnimeCatalogState.Error(error.message ?: "Unknown error")
+                AnimeCatalogState.Error(error.userMessage())
             }
         }
     }
@@ -121,8 +131,10 @@ class AnimeCatalogViewModel(private val api: AnimeApiService) : ViewModel() {
         viewModelScope.launch {
             _seasonal.value = try {
                 AnimeSeasonalState.Loaded(api.season(seasonName, seasonYear))
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
-                AnimeSeasonalState.Error(error.message ?: "Unknown error")
+                AnimeSeasonalState.Error(error.userMessage())
             }
         }
     }

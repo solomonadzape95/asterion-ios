@@ -37,8 +37,11 @@ import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import cloud.cyberverse.asterion.ui.components.AsterionWordmark
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
 import cloud.cyberverse.asterion.ui.components.CoverCard
+import cloud.cyberverse.asterion.ui.components.EmptyState
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.ui.components.SectionHeader
 import cloud.cyberverse.asterion.ui.components.SectionTabRow
+import cloud.cyberverse.asterion.ui.common.SearchUiState
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -71,17 +74,16 @@ fun NovelsListScreen(onNovelClick: (Novel) -> Unit, viewModel: NovelsListViewMod
 
             when {
                 isSearching -> when (val current = searchState) {
-                    is NovelSearchState.Idle, is NovelSearchState.Loading -> AsterionLoadingBox()
-                    is NovelSearchState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Couldn't load novels: ${current.message}")
-                    }
-                    is NovelSearchState.Loaded -> if (current.novels.isEmpty()) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No novels match \"$query\"", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    is SearchUiState.Idle, is SearchUiState.Loading -> AsterionLoadingBox()
+                    is SearchUiState.Error -> ErrorState(
+                        message = current.message,
+                        onRetry = viewModel::retrySearch,
+                    )
+                    is SearchUiState.Loaded -> if (current.results.isEmpty()) {
+                        EmptyState("No novels match “$query”")
                     } else {
                         NovelGrid(
-                            novels = current.novels,
+                            novels = current.results,
                             header = "Search Results" to "Titles matching your search.",
                             onNovelClick = onNovelClick,
                         )
@@ -90,10 +92,10 @@ fun NovelsListScreen(onNovelClick: (Novel) -> Unit, viewModel: NovelsListViewMod
 
                 discover.isLoading -> AsterionLoadingBox()
 
-                discover.novels.isEmpty() && discover.error != null -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { Text("Couldn't load novels: ${discover.error}") }
+                discover.novels.isEmpty() && discover.error != null -> ErrorState(
+                    message = discover.error!!,
+                    onRetry = viewModel::loadMoreDiscover,
+                )
 
                 else -> when (section) {
                     NovelSection.Discover -> DiscoverShelves(discover.novels, onNovelClick)

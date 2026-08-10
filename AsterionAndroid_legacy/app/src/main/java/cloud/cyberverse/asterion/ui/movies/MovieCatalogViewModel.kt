@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.MovieTitle
 import cloud.cyberverse.asterion.data.remote.MovieApiService
+import cloud.cyberverse.asterion.ui.common.SearchUiState
+import cloud.cyberverse.asterion.ui.common.launchSearch
+import cloud.cyberverse.asterion.ui.common.userMessage
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,14 +27,16 @@ data class MovieDiscoverState(
     val canLoadMore: Boolean = true,
 )
 
-private const val SEARCH_DEBOUNCE_MS = 400L
-
 class MovieCatalogViewModel(private val api: MovieApiService) : ViewModel() {
     private val _state = MutableStateFlow<MovieCatalogState>(MovieCatalogState.Loading)
     val state: StateFlow<MovieCatalogState> = _state.asStateFlow()
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
+
+    /** Separate from [state] so a failed search can't blank the trending row behind it. */
+    private val _searchState = MutableStateFlow<SearchUiState<MovieTitle>>(SearchUiState.Idle)
+    val searchState: StateFlow<SearchUiState<MovieTitle>> = _searchState.asStateFlow()
 
     private val _discover = MutableStateFlow(MovieDiscoverState())
     val discover: StateFlow<MovieDiscoverState> = _discover.asStateFlow()
@@ -46,20 +51,23 @@ class MovieCatalogViewModel(private val api: MovieApiService) : ViewModel() {
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            load(newQuery)
-        }
+        searchJob = launchSearch(_searchState, newQuery) { api.search(it) }
     }
 
-    private fun load(search: String = "") {
+    fun retrySearch() {
+        searchJob?.cancel()
+        searchJob = launchSearch(_searchState, _query.value, debounceMs = 0L) { api.search(it) }
+    }
+
+    fun load() {
         _state.value = MovieCatalogState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val titles = if (search.isBlank()) api.popular() else api.search(search.trim())
-                MovieCatalogState.Loaded(titles)
+                MovieCatalogState.Loaded(api.popular())
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
-                MovieCatalogState.Error(error.message ?: "Unknown error")
+                MovieCatalogState.Error(error.userMessage())
             }
         }
     }
@@ -80,6 +88,8 @@ class MovieCatalogViewModel(private val api: MovieApiService) : ViewModel() {
                     isLoadingMore = false,
                     canLoadMore = newTitles.isNotEmpty() && page.page < page.totalPages,
                 )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
                 current.copy(isLoadingMore = false, canLoadMore = false)
             }

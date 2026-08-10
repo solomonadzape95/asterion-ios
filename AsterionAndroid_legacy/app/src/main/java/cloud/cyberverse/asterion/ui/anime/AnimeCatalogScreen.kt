@@ -60,7 +60,10 @@ import cloud.cyberverse.asterion.ui.components.AsterionSearchField
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import cloud.cyberverse.asterion.ui.components.AsterionWordmark
 import cloud.cyberverse.asterion.ui.components.CoverCard
+import cloud.cyberverse.asterion.ui.components.EmptyState
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.ui.components.SectionHeader
+import cloud.cyberverse.asterion.ui.common.SearchUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -71,6 +74,7 @@ private const val AUTO_ADVANCE_DELAY_MS = 4500L
 @Composable
 fun AnimeCatalogScreen(onTitleClick: (AnimeTitle) -> Unit, viewModel: AnimeCatalogViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
+    val searchState by viewModel.searchState.collectAsState()
     val seasonal by viewModel.seasonal.collectAsState()
     val discover by viewModel.discover.collectAsState()
     val query by viewModel.query.collectAsState()
@@ -85,32 +89,56 @@ fun AnimeCatalogScreen(onTitleClick: (AnimeTitle) -> Unit, viewModel: AnimeCatal
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            when (val current = state) {
-                is AnimeCatalogState.Loading -> AsterionLoadingBox()
+            if (isSearching) {
+                when (val current = searchState) {
+                    is SearchUiState.Idle, is SearchUiState.Loading -> AsterionLoadingBox()
 
-                is AnimeCatalogState.Error -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { Text("Couldn't load anime: ${current.message}") }
+                    is SearchUiState.Error -> ErrorState(
+                        message = current.message,
+                        onRetry = viewModel::retrySearch,
+                    )
 
-                is AnimeCatalogState.Loaded -> if (current.titles.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            if (isSearching) "No anime match \"$query\"" else "No anime found",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    is SearchUiState.Loaded -> if (current.results.isEmpty()) {
+                        EmptyState("No anime match “$query”")
+                    } else {
+                        TitleGrid(
+                            current.results,
+                            header = "Search Results" to "Titles matching your search.",
+                            onTitleClick = onTitleClick,
                         )
                     }
-                } else if (isSearching) {
-                    TitleGrid(current.titles, header = "Search Results" to "Titles matching your search.", onTitleClick = onTitleClick)
-                } else {
-                    AnimeDiscoverScreen(
-                        recentlyUpdated = current.titles,
-                        seasonal = seasonal,
-                        seasonLabel = viewModel.seasonLabel,
-                        discover = discover,
-                        onLoadMore = viewModel::loadMoreDiscover,
-                        onTitleClick = onTitleClick,
-                    )
+                }
+            } else {
+                when (val current = state) {
+                    is AnimeCatalogState.Loading -> AsterionLoadingBox()
+
+                    // Only take over the screen when there is genuinely nothing to show. If the
+                    // discover grid loaded, a failed "recently updated" call shouldn't blank it.
+                    is AnimeCatalogState.Error -> if (discover.titles.isEmpty()) {
+                        ErrorState(message = current.message, onRetry = viewModel::load)
+                    } else {
+                        AnimeDiscoverScreen(
+                            recentlyUpdated = emptyList(),
+                            seasonal = seasonal,
+                            seasonLabel = viewModel.seasonLabel,
+                            discover = discover,
+                            onLoadMore = viewModel::loadMoreDiscover,
+                            onTitleClick = onTitleClick,
+                        )
+                    }
+
+                    is AnimeCatalogState.Loaded -> if (current.titles.isEmpty() && discover.titles.isEmpty()) {
+                        EmptyState("No anime found")
+                    } else {
+                        AnimeDiscoverScreen(
+                            recentlyUpdated = current.titles,
+                            seasonal = seasonal,
+                            seasonLabel = viewModel.seasonLabel,
+                            discover = discover,
+                            onLoadMore = viewModel::loadMoreDiscover,
+                            onTitleClick = onTitleClick,
+                        )
+                    }
                 }
             }
         }

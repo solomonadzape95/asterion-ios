@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.Novel
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
+import cloud.cyberverse.asterion.ui.common.SearchUiState
+import cloud.cyberverse.asterion.ui.common.launchSearch
+import cloud.cyberverse.asterion.ui.common.userMessage
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,13 +17,6 @@ import kotlinx.coroutines.launch
 enum class NovelSection(val title: String) {
     Discover("Discover"),
     Rankings("Rankings"),
-}
-
-sealed interface NovelSearchState {
-    data object Idle : NovelSearchState
-    data object Loading : NovelSearchState
-    data class Loaded(val novels: List<Novel>) : NovelSearchState
-    data class Error(val message: String) : NovelSearchState
 }
 
 /** Grows one page at a time as the Rankings grid is scrolled, instead of blocking on the whole
@@ -52,8 +48,8 @@ class NovelsListViewModel(private val api: AsterionApiService) : ViewModel() {
     private val _section = MutableStateFlow(NovelSection.Discover)
     val section: StateFlow<NovelSection> = _section.asStateFlow()
 
-    private val _searchState = MutableStateFlow<NovelSearchState>(NovelSearchState.Idle)
-    val searchState: StateFlow<NovelSearchState> = _searchState.asStateFlow()
+    private val _searchState = MutableStateFlow<SearchUiState<Novel>>(SearchUiState.Idle)
+    val searchState: StateFlow<SearchUiState<Novel>> = _searchState.asStateFlow()
 
     private var searchJob: Job? = null
 
@@ -68,20 +64,12 @@ class NovelsListViewModel(private val api: AsterionApiService) : ViewModel() {
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
         searchJob?.cancel()
-        val trimmed = newQuery.trim()
-        if (trimmed.isEmpty()) {
-            _searchState.value = NovelSearchState.Idle
-            return
-        }
-        searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            _searchState.value = NovelSearchState.Loading
-            _searchState.value = try {
-                NovelSearchState.Loaded(fetchAllNovels(trimmed))
-            } catch (error: Exception) {
-                NovelSearchState.Error(error.message ?: "Unknown error")
-            }
-        }
+        searchJob = launchSearch(_searchState, newQuery) { fetchAllNovels(it) }
+    }
+
+    fun retrySearch() {
+        searchJob?.cancel()
+        searchJob = launchSearch(_searchState, _query.value, debounceMs = 0L) { fetchAllNovels(it) }
     }
 
     /** Loads the next page of the full catalog, appending to whatever's already loaded - Featured
@@ -106,8 +94,10 @@ class NovelsListViewModel(private val api: AsterionApiService) : ViewModel() {
                     canLoadMore = newNovels.isNotEmpty() && merged.size < total,
                     error = null,
                 )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (error: Exception) {
-                current.copy(isLoading = false, isLoadingMore = false, error = error.message ?: "Unknown error")
+                current.copy(isLoading = false, isLoadingMore = false, error = error.userMessage())
             }
         }
     }

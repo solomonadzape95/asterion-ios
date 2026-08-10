@@ -22,9 +22,16 @@ fun AsterionFilledButton(text: String, icon: ImageVector, onClick: () -> Unit, m
 
 /** An outlined pill button, matching the "Saved" button in the design reference. */
 @Composable
-fun AsterionOutlinedButton(text: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun AsterionOutlinedButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+) {
     OutlinedButton(onClick = onClick, modifier = modifier) {
-        Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+        }
         Text(text)
     }
 }
