@@ -54,6 +54,9 @@ private val DarkColors = darkColorScheme(
     onSurface = AsterionDarkOnBackground,
     surfaceVariant = AsterionDarkCard,
     onSurfaceVariant = AsterionDarkMuted,
+    // The fourth value step, for controls resting on a card. Material has no better-named role
+    // for this, and surfaceContainerHighest is what M3 components reach for by default.
+    surfaceContainerHighest = AsterionDarkElevated,
     outline = AsterionDarkBorder,
 )
 

@@ -14,13 +14,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,17 +24,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.vectorResource
+import cloud.cyberverse.asterion.R
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-enum class AsterionTab(val route: String, val label: String, val icon: ImageVector) {
-    Home("home", "Home", Icons.Filled.Home),
-    Novels("novels", "Novels", Icons.AutoMirrored.Filled.MenuBook),
-    Anime("anime", "Anime", Icons.Filled.LiveTv),
-    Movies("movies", "Movies", Icons.Filled.Movie),
-    Football("football", "Football", Icons.Filled.SportsSoccer),
-    Profile("profile", "Profile", Icons.Filled.Person),
+/**
+ * Icons are held as drawable ids rather than ImageVectors because resolving a vector resource
+ * needs a composition, which an enum constructor does not have. [icon] does the lookup at render
+ * time instead.
+ */
+enum class AsterionTab(val route: String, val label: String, @DrawableRes val iconRes: Int) {
+    Home("home", "Home", R.drawable.ph_house_fill),
+    Novels("novels", "Novels", R.drawable.ph_book_open),
+    Anime("anime", "Anime", R.drawable.ph_television_fill),
+    Movies("movies", "Movies", R.drawable.ph_film_slate_fill),
+    Football("football", "Football", R.drawable.ph_soccer_ball_fill),
+    Profile("profile", "Profile", R.drawable.ph_user);
+
+    val icon: ImageVector
+        @Composable get() = ImageVector.vectorResource(iconRes)
 }
 
 /**

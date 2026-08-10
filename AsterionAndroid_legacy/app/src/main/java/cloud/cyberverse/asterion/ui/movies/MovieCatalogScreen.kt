@@ -25,8 +25,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.data.model.MovieTitle
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -286,7 +285,7 @@ private fun MovieFeaturedBanner(titles: List<MovieTitle>, onTitleClick: (MovieTi
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.padding(top = 14.dp),
                         ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                            Icon(PhosphorIcons.PlayArrow, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
                             Text("Watch now")
                         }
                     }

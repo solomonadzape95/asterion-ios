@@ -6,17 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ClosedCaption
-import androidx.compose.material.icons.filled.ClosedCaptionOff
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PictureInPictureAlt
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -174,7 +163,7 @@ fun VideoPlayerControls(
                     if (isPlaying) player.pause() else player.play()
                 }) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        imageVector = if (isPlaying) PhosphorIcons.Pause else PhosphorIcons.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         tint = Color.White,
                     )
@@ -201,13 +190,13 @@ fun VideoPlayerControls(
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box {
                     IconButton(onClick = { keepControlsVisible(); showSpeedMenu = true }) {
-                        Icon(Icons.Filled.Speed, contentDescription = "Playback speed", tint = Color.White)
+                        Icon(PhosphorIcons.Speed, contentDescription = "Playback speed", tint = Color.White)
                     }
                     DropdownMenu(expanded = showSpeedMenu, onDismissRequest = { showSpeedMenu = false; keepControlsVisible() }) {
                         PLAYBACK_SPEEDS.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(if (option == 1f) "Normal" else "${option}x") },
-                                leadingIcon = { if (option == speed) Icon(Icons.Filled.Check, contentDescription = null) },
+                                leadingIcon = { if (option == speed) Icon(PhosphorIcons.Check, contentDescription = null) },
                                 onClick = {
                                     keepControlsVisible()
                                     speed = option
@@ -224,13 +213,13 @@ fun VideoPlayerControls(
                 if (sources.size > 1) {
                     Box {
                         IconButton(onClick = { keepControlsVisible(); showSourceMenu = true }) {
-                            Icon(Icons.Filled.SwapHoriz, contentDescription = "Source", tint = Color.White)
+                            Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = Color.White)
                         }
                         DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false; keepControlsVisible() }) {
                             sources.forEachIndexed { index, source ->
                                 DropdownMenuItem(
                                     text = { Text(source.label) },
-                                    leadingIcon = { if (index == selectedSourceIndex) Icon(Icons.Filled.Check, contentDescription = null) },
+                                    leadingIcon = { if (index == selectedSourceIndex) Icon(PhosphorIcons.Check, contentDescription = null) },
                                     onClick = {
                                         keepControlsVisible()
                                         onSelectSource(index)
@@ -246,7 +235,7 @@ fun VideoPlayerControls(
                     Box {
                         IconButton(onClick = { keepControlsVisible(); showSubtitleMenu = true }) {
                             Icon(
-                                if (selectedSubtitleIndex == null) Icons.Filled.ClosedCaptionOff else Icons.Filled.ClosedCaption,
+                                if (selectedSubtitleIndex == null) PhosphorIcons.ClosedCaptionOff else PhosphorIcons.ClosedCaption,
                                 contentDescription = "Subtitles",
                                 tint = Color.White,
                             )
@@ -254,7 +243,7 @@ fun VideoPlayerControls(
                         DropdownMenu(expanded = showSubtitleMenu, onDismissRequest = { showSubtitleMenu = false; keepControlsVisible() }) {
                             DropdownMenuItem(
                                 text = { Text("Off") },
-                                leadingIcon = { if (selectedSubtitleIndex == null) Icon(Icons.Filled.Check, contentDescription = null) },
+                                leadingIcon = { if (selectedSubtitleIndex == null) Icon(PhosphorIcons.Check, contentDescription = null) },
                                 onClick = {
                                     keepControlsVisible()
                                     selectedSubtitleIndex = null
@@ -265,7 +254,7 @@ fun VideoPlayerControls(
                             currentSubtitles.forEachIndexed { index, track ->
                                 DropdownMenuItem(
                                     text = { Text(track.label) },
-                                    leadingIcon = { if (index == selectedSubtitleIndex) Icon(Icons.Filled.Check, contentDescription = null) },
+                                    leadingIcon = { if (index == selectedSubtitleIndex) Icon(PhosphorIcons.Check, contentDescription = null) },
                                     onClick = {
                                         keepControlsVisible()
                                         selectedSubtitleIndex = index
@@ -281,11 +270,11 @@ fun VideoPlayerControls(
                 Box(modifier = Modifier.weight(1f))
 
                 IconButton(onClick = { keepControlsVisible(); onEnterPictureInPicture() }) {
-                    Icon(Icons.Filled.PictureInPictureAlt, contentDescription = "Picture in picture", tint = Color.White)
+                    Icon(PhosphorIcons.PictureInPictureAlt, contentDescription = "Picture in picture", tint = Color.White)
                 }
                 IconButton(onClick = { keepControlsVisible(); onToggleFullscreen() }) {
                     Icon(
-                        imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                        imageVector = if (isFullscreen) PhosphorIcons.FullscreenExit else PhosphorIcons.Fullscreen,
                         contentDescription = "Toggle fullscreen",
                         tint = Color.White,
                     )

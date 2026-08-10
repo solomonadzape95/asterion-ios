@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Hd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -28,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.model.FootballStream
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -86,11 +84,11 @@ fun FootballStreamsScreen(
                     ListItem(
                         headlineContent = { Text(stream.displayName) },
                         leadingContent = if (stream.hd) {
-                            { Icon(Icons.Filled.Hd, contentDescription = "HD") }
+                            { Icon(PhosphorIcons.Hd, contentDescription = "HD") }
                         } else {
                             null
                         },
-                        trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+                        trailingContent = { Icon(PhosphorIcons.ChevronRight, contentDescription = null) },
                         modifier = Modifier.clickable { onStreamClick(stream) },
                     )
                 }

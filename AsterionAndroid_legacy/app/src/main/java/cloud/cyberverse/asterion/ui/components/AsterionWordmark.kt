@@ -3,8 +3,6 @@ package cloud.cyberverse.asterion.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,7 +17,7 @@ fun AsterionWordmark(modifier: Modifier = Modifier, showTagline: Boolean = false
     Column(modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(
-                imageVector = Icons.Filled.AutoStories,
+                imageVector = PhosphorIcons.AutoStories,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )

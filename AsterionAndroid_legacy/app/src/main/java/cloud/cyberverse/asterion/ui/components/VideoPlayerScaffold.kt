@@ -18,10 +18,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
@@ -234,9 +230,9 @@ fun VideoPlayerScaffold(
                         .background(Color.Black.copy(alpha = 0.55f))
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
-                    if (!forward) Icon(Icons.Filled.FastRewind, contentDescription = null, tint = Color.White)
+                    if (!forward) Icon(PhosphorIcons.FastRewind, contentDescription = null, tint = Color.White)
                     Text("10s", color = Color.White, modifier = Modifier.padding(horizontal = 4.dp))
-                    if (forward) Icon(Icons.Filled.FastForward, contentDescription = null, tint = Color.White)
+                    if (forward) Icon(PhosphorIcons.FastForward, contentDescription = null, tint = Color.White)
                 }
             }
         }
@@ -254,7 +250,7 @@ fun VideoPlayerScaffold(
                         .background(Color.Black.copy(alpha = 0.72f))
                         .padding(20.dp),
                 ) {
-                    Icon(Icons.Filled.ErrorOutline, contentDescription = null, tint = Color.White)
+                    Icon(PhosphorIcons.ErrorOutline, contentDescription = null, tint = Color.White)
                     Text(
                         playbackError,
                         color = Color.White,

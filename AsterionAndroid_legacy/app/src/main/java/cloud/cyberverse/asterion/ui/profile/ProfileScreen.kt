@@ -18,18 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -64,6 +52,7 @@ import cloud.cyberverse.asterion.data.local.DownloadIndexStore
 import cloud.cyberverse.asterion.data.model.MediaAccountStats
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
 import cloud.cyberverse.asterion.data.sync.MediaAccountRepository
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingIndicator
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
@@ -147,19 +136,19 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
             ) {
                 StatCard(
-                    icon = Icons.Filled.AutoStories,
+                    icon = PhosphorIcons.AutoStories,
                     value = downloads.count { it.contentType == DownloadContentType.NOVEL },
                     label = "Chapters",
                     modifier = Modifier.weight(1f),
                 )
                 StatCard(
-                    icon = Icons.Filled.LiveTv,
+                    icon = PhosphorIcons.LiveTv,
                     value = downloads.count { it.contentType == DownloadContentType.ANIME },
                     label = "Episodes",
                     modifier = Modifier.weight(1f),
                 )
                 StatCard(
-                    icon = Icons.Filled.Movie,
+                    icon = PhosphorIcons.Movie,
                     value = downloads.count { it.contentType == DownloadContentType.MOVIE },
                     label = "Movies",
                     modifier = Modifier.weight(1f),
@@ -168,7 +157,7 @@ fun ProfileScreen(
 
             SectionLabel("Library", modifier = Modifier.padding(top = 30.dp, bottom = 10.dp))
             ProfileCardRow(
-                icon = Icons.Filled.Download,
+                icon = PhosphorIcons.Download,
                 title = "Downloads",
                 subtitle = if (downloads.isEmpty()) "Nothing downloaded yet" else "${downloads.size} item${if (downloads.size == 1) "" else "s"} saved offline",
                 onClick = onDownloadsClick,
@@ -182,7 +171,7 @@ fun ProfileScreen(
             )
             Spacer(Modifier.padding(top = 10.dp))
             ProfileCardRow(
-                icon = Icons.Filled.TextFields,
+                icon = PhosphorIcons.TextFields,
                 title = "Reading Settings",
                 subtitle = "Theme, font, and text size for the reader",
                 onClick = { showReaderSettings = true },
@@ -202,7 +191,7 @@ fun ProfileScreen(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                 modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(PhosphorIcons.Logout, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Sign Out")
             }
 
@@ -302,7 +291,7 @@ private fun AppearanceCard(
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            Icon(PhosphorIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             Text(
                 "Theme",
                 style = MaterialTheme.typography.titleSmall,
@@ -325,7 +314,7 @@ private fun AppearanceCard(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 18.dp)) {
-            Icon(Icons.Filled.TextFields, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            Icon(PhosphorIcons.TextFields, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             Text(
                 "App Font",
                 style = MaterialTheme.typography.titleSmall,
@@ -396,7 +385,7 @@ private fun SyncSection(
             verticalAlignment = Alignment.Top,
         ) {
             Icon(
-                Icons.Filled.CloudOff,
+                PhosphorIcons.CloudOff,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp).size(20.dp),
@@ -414,19 +403,19 @@ private fun SyncSection(
 
         else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier.fillMaxWidth()) {
             StatCard(
-                icon = Icons.Filled.AutoStories,
+                icon = PhosphorIcons.AutoStories,
                 value = savedNovels ?: 0,
                 label = "Saved novels",
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                icon = Icons.Filled.Bookmark,
+                icon = PhosphorIcons.Bookmark,
                 value = (stats?.savedAnime ?: 0) + (stats?.savedMovies ?: 0),
                 label = "Saved anime & movies",
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                icon = Icons.Filled.PlayCircle,
+                icon = PhosphorIcons.PlayCircle,
                 value = stats?.titlesInProgress ?: 0,
                 label = "In progress",
                 modifier = Modifier.weight(1f),
@@ -496,7 +485,7 @@ private fun ProfileCardRow(icon: ImageVector, title: String, subtitle: String, o
             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(PhosphorIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

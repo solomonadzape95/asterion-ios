@@ -16,14 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.NovelDownloadRepository
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.Novel
@@ -104,12 +97,12 @@ fun NovelDetailScreen(
                     if (loaded != null) {
                         IconButton(onClick = viewModel::toggleBookmark, enabled = !loaded.isBookmarkUpdating) {
                             Icon(
-                                if (loaded.isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                if (loaded.isBookmarked) PhosphorIcons.Bookmark else PhosphorIcons.BookmarkBorder,
                                 contentDescription = if (loaded.isBookmarked) "Remove from library" else "Save to library",
                             )
                         }
                         IconButton(onClick = { showPlanner = true }) {
-                            Icon(Icons.Filled.Download, contentDescription = "Download chapters")
+                            Icon(PhosphorIcons.Download, contentDescription = "Download chapters")
                         }
                     }
                 },
@@ -206,7 +199,7 @@ fun NovelDetailScreen(
                                     color = MaterialTheme.colorScheme.primary,
                                 )
                             },
-                            trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+                            trailingContent = { Icon(PhosphorIcons.ChevronRight, contentDescription = null) },
                             modifier = Modifier.clickable { onChapterClick(chapter) },
                         )
                     }
@@ -280,14 +273,14 @@ private fun NovelHero(
             novel.genres?.firstOrNull()?.let { genre ->
                 MetadataChip(icon = null, text = genre, tint = genreColor(novel.genres))
             }
-            if (totalChapters > 0) MetadataChip(Icons.Filled.AutoStories, "$totalChapters ch.")
-            novel.rating?.let { MetadataChip(Icons.Filled.Star, it.toString()) }
-            novel.views?.let { MetadataChip(Icons.Filled.Visibility, it) }
+            if (totalChapters > 0) MetadataChip(PhosphorIcons.AutoStories, "$totalChapters ch.")
+            novel.rating?.let { MetadataChip(PhosphorIcons.Star, it.toString()) }
+            novel.views?.let { MetadataChip(PhosphorIcons.Visibility, it) }
         }
 
         AsterionFilledButton(
             text = if (resumeChapter != null) "Continue Chapter ${resumeChapter.chapterNumber}" else "Start Reading",
-            icon = Icons.Filled.AutoStories,
+            icon = PhosphorIcons.AutoStories,
             onClick = onStartReading,
             modifier = Modifier.padding(top = 22.dp).fillMaxWidth(),
         )

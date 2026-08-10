@@ -1,5 +1,7 @@
 package cloud.cyberverse.asterion.ui.novels
 
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,12 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,15 +88,15 @@ fun ChapterReaderScreen(
                 title = { Text("Chapter $chapterNumber", color = palette.text) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = palette.text)
+                        Icon(PhosphorIcons.ArrowBack, contentDescription = "Back", tint = palette.text)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showChapterPicker = true }) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters", tint = palette.text)
+                        Icon(PhosphorIcons.List, contentDescription = "Chapters", tint = palette.text)
                     }
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Reader settings", tint = palette.text)
+                        Icon(PhosphorIcons.Settings, contentDescription = "Reader settings", tint = palette.text)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = palette.background),
@@ -124,7 +120,7 @@ fun ChapterReaderScreen(
                         onClick = { previous?.let { onNavigateToChapter(it.chapterNumber) } },
                         enabled = previous != null,
                     ) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = null, tint = palette.text)
+                        Icon(PhosphorIcons.ChevronLeft, contentDescription = null, tint = palette.text)
                         Text("Previous", color = palette.text)
                     }
                     TextButton(
@@ -132,7 +128,7 @@ fun ChapterReaderScreen(
                         enabled = next != null,
                     ) {
                         Text("Next", color = palette.text)
-                        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = palette.text)
+                        Icon(PhosphorIcons.ChevronRight, contentDescription = null, tint = palette.text)
                     }
                 }
             }

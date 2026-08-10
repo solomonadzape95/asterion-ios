@@ -21,12 +21,18 @@ val AsterionLightOnBackground = Color(0xFF1A1B20)
 val AsterionLightMuted = Color(0xFF6B6560)
 val AsterionLightBorder = Color(0xFFDDD7CE)
 
-val AsterionDarkBackground = Color(0xFF121114)
-val AsterionDarkSurface = Color(0xFF1C1B1E)
-val AsterionDarkCard = Color(0xFF262429)
-val AsterionDarkOnBackground = Color(0xFFF0EEEA)
-val AsterionDarkMuted = Color(0xFFA8A29E)
-val AsterionDarkBorder = Color(0xFF38343A)
+// Dark is the app's real home, and depth here comes from stacked values rather than outlines:
+// page, then a lifted surface, then a card on top of that. Layering values instead of drawing
+// borders is what separates a flat dark theme from one that reads as deliberate.
+val AsterionDarkBackground = Color(0xFF0F0E10)
+val AsterionDarkSurface = Color(0xFF17161A)
+val AsterionDarkCard = Color(0xFF1F1E23)
+/** One step above card, for controls sitting on a card - toggles, chips, secondary buttons. */
+val AsterionDarkElevated = Color(0xFF272630)
+val AsterionDarkOnBackground = Color(0xFFF2F0EE)
+val AsterionDarkMuted = Color(0xFFA09B99)
+// Hairline only. Borders separate where a value step cannot; they never carry the depth.
+val AsterionDarkBorder = Color(0xFF322E36)
 
 val GenreFantasy = Color(0xFF8C6814)
 val GenreAction = Color(0xFFA1522E)

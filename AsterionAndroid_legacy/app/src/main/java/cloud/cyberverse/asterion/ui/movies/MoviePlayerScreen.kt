@@ -3,9 +3,6 @@ package cloud.cyberverse.asterion.ui.movies
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -21,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingIndicator
 import cloud.cyberverse.asterion.ui.components.EmbedWebView
 import cloud.cyberverse.asterion.ui.components.PlaybackSource
@@ -80,13 +78,13 @@ private fun WebSourcePlayer(
         if (sources.size > 1) {
             Box(Modifier.align(Alignment.TopEnd).padding(12.dp)) {
                 IconButton(onClick = { showSourceMenu = true }) {
-                    Icon(Icons.Filled.SwapHoriz, contentDescription = "Source", tint = Color.White)
+                    Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = Color.White)
                 }
                 DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
                     sources.forEachIndexed { index, source ->
                         DropdownMenuItem(
                             text = { Text(source.label) },
-                            leadingIcon = { if (index == selectedIndex) Icon(Icons.Filled.Check, contentDescription = null) },
+                            leadingIcon = { if (index == selectedIndex) Icon(PhosphorIcons.Check, contentDescription = null) },
                             onClick = {
                                 showSourceMenu = false
                                 onSelectSource(index)

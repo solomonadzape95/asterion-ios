@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.local.DownloadEntry
 import cloud.cyberverse.asterion.data.local.DownloadPhase
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import org.koin.androidx.compose.koinViewModel
@@ -120,11 +117,11 @@ private fun DownloadRow(entry: DownloadEntry, onClick: () -> Unit, onDelete: () 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 when (entry.phase) {
                     DownloadPhase.DOWNLOADING, DownloadPhase.QUEUED -> CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                    DownloadPhase.COMPLETED -> Icon(Icons.Filled.CheckCircle, contentDescription = "Downloaded", tint = MaterialTheme.colorScheme.primary)
-                    DownloadPhase.FAILED -> Icon(Icons.Filled.Error, contentDescription = "Failed", tint = MaterialTheme.colorScheme.error)
+                    DownloadPhase.COMPLETED -> Icon(PhosphorIcons.CheckCircle, contentDescription = "Downloaded", tint = MaterialTheme.colorScheme.primary)
+                    DownloadPhase.FAILED -> Icon(PhosphorIcons.Error, contentDescription = "Failed", tint = MaterialTheme.colorScheme.error)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Remove download")
+                    Icon(PhosphorIcons.Delete, contentDescription = "Remove download")
                 }
             }
         },

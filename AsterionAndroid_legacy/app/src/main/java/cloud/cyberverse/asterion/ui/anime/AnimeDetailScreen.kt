@@ -19,12 +19,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -49,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.AnimeEpisode
@@ -96,12 +91,12 @@ fun AnimeDetailScreen(
                     if (loaded != null) {
                         IconButton(onClick = viewModel::toggleBookmark, enabled = !loaded.isBookmarkUpdating) {
                             Icon(
-                                if (loaded.isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                if (loaded.isBookmarked) PhosphorIcons.Bookmark else PhosphorIcons.BookmarkBorder,
                                 contentDescription = if (loaded.isBookmarked) "Remove from saved" else "Save",
                             )
                         }
                         IconButton(onClick = { showPlanner = true }) {
-                            Icon(Icons.Filled.Download, contentDescription = "Download episodes")
+                            Icon(PhosphorIcons.Download, contentDescription = "Download episodes")
                         }
                     }
                 },
@@ -149,7 +144,7 @@ fun AnimeDetailScreen(
                             current.show.subEpisodes?.let { MetaText("$it episodes") }
                             current.show.malScore?.let {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(16.dp))
+                                    Icon(PhosphorIcons.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(16.dp))
                                     Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -175,7 +170,7 @@ fun AnimeDetailScreen(
 
                         AsterionFilledButton(
                             text = "Watch Episode 1",
-                            icon = Icons.Filled.PlayCircle,
+                            icon = PhosphorIcons.PlayCircle,
                             onClick = { current.episodes.firstOrNull()?.let { onEpisodeClick(current.show, it) } },
                             modifier = Modifier.padding(top = 22.dp).fillMaxWidth(),
                         )

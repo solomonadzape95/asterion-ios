@@ -16,9 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.data.model.FootballMatch
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.model.FootballTeam
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
@@ -137,7 +135,7 @@ private fun MatchRow(match: FootballMatch, onClick: () -> Unit, modifier: Modifi
 
         if (match.popular) {
             Icon(
-                Icons.Filled.LocalFireDepartment,
+                PhosphorIcons.LocalFireDepartment,
                 contentDescription = "Popular match",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 8.dp).size(18.dp),
@@ -157,7 +155,7 @@ private fun TeamLine(team: FootballTeam?, fallback: String, topPadding: androidx
             )
         } else {
             Icon(
-                Icons.Filled.Shield,
+                PhosphorIcons.Shield,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),

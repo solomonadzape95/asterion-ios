@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,7 +40,7 @@ fun AsterionLoadingIndicator(modifier: Modifier = Modifier, label: String? = nul
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(
-            imageVector = Icons.Filled.AutoStories,
+            imageVector = PhosphorIcons.AutoStories,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier

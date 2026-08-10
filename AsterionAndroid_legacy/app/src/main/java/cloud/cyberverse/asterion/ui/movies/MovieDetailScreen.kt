@@ -22,13 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.DownloadDone
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
+import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.MovieShow
@@ -89,7 +83,7 @@ fun MovieDetailScreen(
                     if (loaded != null) {
                         IconButton(onClick = viewModel::toggleBookmark, enabled = !loaded.isBookmarkUpdating) {
                             Icon(
-                                if (loaded.isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                if (loaded.isBookmarked) PhosphorIcons.Bookmark else PhosphorIcons.BookmarkBorder,
                                 contentDescription = if (loaded.isBookmarked) "Remove from saved" else "Save",
                             )
                         }
@@ -120,7 +114,7 @@ fun MovieDetailScreen(
                             },
                         ) {
                             Icon(
-                                if (isDownloading) Icons.Filled.DownloadDone else Icons.Filled.Download,
+                                if (isDownloading) PhosphorIcons.DownloadDone else PhosphorIcons.Download,
                                 contentDescription = "Download",
                             )
                         }
@@ -172,7 +166,7 @@ fun MovieDetailScreen(
 
                     AsterionFilledButton(
                         text = if (current.show.isSeries) "Play S1 · E1" else "Play",
-                        icon = Icons.Filled.PlayCircle,
+                        icon = PhosphorIcons.PlayCircle,
                         onClick = { onPlayClick(current.show) },
                         modifier = Modifier.padding(top = 18.dp).fillMaxWidth(),
                     )
@@ -250,7 +244,7 @@ private fun RatingsStrip(ratings: List<MovieRating>, modifier: Modifier = Modifi
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                Icon(PhosphorIcons.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
                 Text(
                     rating.source,
                     style = MaterialTheme.typography.bodySmall,
