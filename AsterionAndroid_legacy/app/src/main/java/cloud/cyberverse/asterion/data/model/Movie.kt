@@ -16,6 +16,13 @@ data class MovieTitle(
 )
 
 @Serializable
+data class MovieCatalogPage(
+    val page: Int,
+    @SerialName("total_pages") val totalPages: Int,
+    val results: List<MovieTitle>,
+)
+
+@Serializable
 data class MovieShow(
     val slug: String,
     val title: String,

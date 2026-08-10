@@ -1,5 +1,6 @@
 package cloud.cyberverse.asterion.data.remote
 
+import cloud.cyberverse.asterion.data.model.MovieCatalogPage
 import cloud.cyberverse.asterion.data.model.MoviePlaybackSources
 import cloud.cyberverse.asterion.data.model.MovieShow
 import cloud.cyberverse.asterion.data.model.MovieTitle
@@ -9,7 +10,10 @@ import retrofit2.http.Query
 
 interface MovieApiService {
     @GET("popular/movies")
-    suspend fun popular(@Query("page") page: Int = 1): List<MovieTitle>
+    suspend fun popular(): List<MovieTitle>
+
+    @GET("movies")
+    suspend fun catalog(@Query("page") page: Int = 1): MovieCatalogPage
 
     @GET("search")
     suspend fun search(@Query("q") query: String): List<MovieTitle>

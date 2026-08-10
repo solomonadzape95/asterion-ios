@@ -82,7 +82,8 @@ class AnimeCatalogViewModel(private val api: AnimeApiService) : ViewModel() {
         viewModelScope.launch {
             val nextPage = current.page + 1
             _discover.value = try {
-                val newTitles = api.popular(nextPage)
+                val seenSlugs = current.titles.mapTo(mutableSetOf()) { it.slug }
+                val newTitles = api.popular(nextPage).filter { seenSlugs.add(it.slug) }
                 current.copy(
                     titles = current.titles + newTitles,
                     page = nextPage,

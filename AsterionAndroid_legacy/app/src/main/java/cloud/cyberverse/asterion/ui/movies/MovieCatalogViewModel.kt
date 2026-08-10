@@ -71,12 +71,14 @@ class MovieCatalogViewModel(private val api: MovieApiService) : ViewModel() {
         viewModelScope.launch {
             val nextPage = current.page + 1
             _discover.value = try {
-                val newTitles = api.popular(nextPage)
+                val page = api.catalog(nextPage)
+                val seenIds = current.titles.mapTo(mutableSetOf()) { it.id }
+                val newTitles = page.results.filter { seenIds.add(it.id) }
                 current.copy(
                     titles = current.titles + newTitles,
                     page = nextPage,
                     isLoadingMore = false,
-                    canLoadMore = newTitles.isNotEmpty(),
+                    canLoadMore = newTitles.isNotEmpty() && page.page < page.totalPages,
                 )
             } catch (error: Exception) {
                 current.copy(isLoadingMore = false, canLoadMore = false)

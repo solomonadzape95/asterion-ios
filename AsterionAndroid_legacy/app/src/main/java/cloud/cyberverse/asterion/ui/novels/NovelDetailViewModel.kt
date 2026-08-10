@@ -6,6 +6,7 @@ import cloud.cyberverse.asterion.data.model.AddToLibraryRequest
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.Novel
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
+import cloud.cyberverse.asterion.data.remote.fetchAllChapters
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,7 @@ class NovelDetailViewModel(private val api: AsterionApiService, private val nove
         viewModelScope.launch {
             _state.value = try {
                 val novel = api.novel(novelId).data
-                val chapters = api.chapters(novelId).data
+                val chapters = api.fetchAllChapters(novelId)
                 // Bookmark/progress sync is best-effort: a signed-in reader without network (or
                 // hitting an auth hiccup) should still see the novel, just without sync state -
                 // both run in parallel with the chapter list already loaded.

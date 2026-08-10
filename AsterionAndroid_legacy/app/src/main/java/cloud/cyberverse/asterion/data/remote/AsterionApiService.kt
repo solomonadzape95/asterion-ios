@@ -35,7 +35,11 @@ interface AsterionApiService {
     suspend fun novel(@Path("id") id: String): ItemEnvelope<Novel>
 
     @GET("novels/{id}/chapters")
-    suspend fun chapters(@Path("id") novelId: String): ListEnvelope<Chapter>
+    suspend fun chapters(
+        @Path("id") novelId: String,
+        @Query("limit") limit: Int? = null,
+        @Query("offset") offset: Int? = null,
+    ): ListEnvelope<Chapter>
 
     @GET("novels/{id}/chapters/{chapterNumber}")
     suspend fun chapter(@Path("id") novelId: String, @Path("chapterNumber") chapterNumber: Int): ItemEnvelope<Chapter>
@@ -74,4 +78,38 @@ interface AsterionApiService {
 
     @PUT("me/media/progress")
     suspend fun saveMediaProgress(@Body body: MediaProgressRequest): ItemEnvelope<MediaProgressSaveResult>
+}
+
+suspend fun AsterionApiService.fetchAllChapters(
+    novelId: String,
+    pageSize: Int = 100,
+): List<Chapter> {
+    val normalizedPageSize = pageSize.coerceIn(1, 100)
+    val allChapters = mutableListOf<Chapter>()
+    val seenIds = mutableSetOf<String>()
+    var offset = 0
+
+    while (true) {
+        val response = chapters(
+            novelId = novelId,
+            limit = normalizedPageSize,
+            offset = offset,
+        )
+        val newChapters = response.data.filter { seenIds.add(it.id) }
+        allChapters += newChapters
+
+        val total = response.meta?.total?.takeIf { it > 0 }
+        if (
+            response.data.isEmpty() ||
+            newChapters.isEmpty() ||
+            response.data.size < normalizedPageSize ||
+            total?.let { allChapters.size >= it } == true
+        ) {
+            break
+        }
+
+        offset += normalizedPageSize
+    }
+
+    return allChapters.sortedBy { it.chapterNumber }
 }

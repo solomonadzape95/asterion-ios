@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.SaveProgressRequest
 import cloud.cyberverse.asterion.data.remote.AsterionApiService
+import cloud.cyberverse.asterion.data.remote.fetchAllChapters
 import java.io.File
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -59,7 +60,7 @@ class ChapterReaderViewModel(
             val downloadedChapter = readDownloadedChapter(novelId, chapterNumber)
             if (downloadedChapter != null) {
                 val allChapters = try {
-                    api.chapters(novelId).data.sortedBy { it.chapterNumber }
+                    api.fetchAllChapters(novelId)
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -72,7 +73,7 @@ class ChapterReaderViewModel(
                 // The full list only powers the picker/prev-next nav - if it fails to load,
                 // the chapter itself already succeeded, so don't fail the whole screen over it.
                 val allChapters = try {
-                    api.chapters(novelId).data.sortedBy { it.chapterNumber }
+                    api.fetchAllChapters(novelId)
                 } catch (_: Exception) {
                     emptyList()
                 }
