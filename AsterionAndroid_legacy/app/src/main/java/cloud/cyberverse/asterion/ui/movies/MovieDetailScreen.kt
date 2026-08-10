@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.MovieShow
 import cloud.cyberverse.asterion.data.remote.MovieApiService
@@ -131,10 +132,11 @@ fun MovieDetailScreen(
         when (val current = state) {
             is MovieDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
 
-            is MovieDetailState.Error -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load this title: ${current.message}") }
+            is MovieDetailState.Error -> ErrorState(
+                message = current.message,
+                onRetry = viewModel::load,
+                modifier = Modifier.padding(padding),
+            )
 
             is MovieDetailState.Loaded -> Column(
                 Modifier

@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.data.model.Chapter
@@ -144,10 +145,23 @@ fun ChapterReaderScreen(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator() }
 
+            // Deliberately not the shared ErrorState: the reader runs on its own paper/sepia/ink
+            // palette rather than the app theme, so themed colours would clash with the page.
             is ChapterReaderState.Error -> Box(
                 Modifier.fillMaxSize().background(palette.background).padding(padding),
                 contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load this chapter: ${current.message}", color = palette.text) }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(32.dp),
+                ) {
+                    Text(current.message, color = palette.text, textAlign = TextAlign.Center)
+                    TextButton(onClick = viewModel::load) {
+                        Text("Try again", color = palette.text)
+                    }
+                }
+            }
 
             is ChapterReaderState.Loaded -> {
                 val paragraphs = (current.chapter.content ?: "")

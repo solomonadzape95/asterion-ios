@@ -3,6 +3,7 @@ package cloud.cyberverse.asterion.ui.football
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.FootballMatch
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.FootballStream
 import cloud.cyberverse.asterion.data.model.FootballStreamRequest
 import cloud.cyberverse.asterion.data.remote.FootballApiService
@@ -26,6 +27,11 @@ class FootballStreamsViewModel(private val api: FootballApiService, private val 
     val state: StateFlow<FootballStreamsState> = _state.asStateFlow()
 
     init {
+        load()
+    }
+
+    fun load() {
+        _state.value = FootballStreamsState.Loading
         viewModelScope.launch {
             _state.value = try {
                 val match = findMatch()
@@ -41,7 +47,7 @@ class FootballStreamsViewModel(private val api: FootballApiService, private val 
                     FootballStreamsState.Loaded(match, api.streams(request).data.streams)
                 }
             } catch (error: Exception) {
-                FootballStreamsState.Error(error.message ?: "Unknown error")
+                FootballStreamsState.Error(error.userMessage())
             }
         }
     }

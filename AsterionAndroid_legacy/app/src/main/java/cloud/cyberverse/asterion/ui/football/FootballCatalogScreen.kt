@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.data.model.FootballMatch
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.model.FootballTeam
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -55,10 +56,11 @@ fun FootballCatalogScreen(onMatchClick: (FootballMatch) -> Unit, viewModel: Foot
         when (val current = state) {
             is FootballCatalogState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
 
-            is FootballCatalogState.Error -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load matches: ${current.message}") }
+            is FootballCatalogState.Error -> ErrorState(
+                message = current.message,
+                onRetry = viewModel::load,
+                modifier = Modifier.padding(padding),
+            )
 
             is FootballCatalogState.Loaded -> {
                 val groups = current.matches

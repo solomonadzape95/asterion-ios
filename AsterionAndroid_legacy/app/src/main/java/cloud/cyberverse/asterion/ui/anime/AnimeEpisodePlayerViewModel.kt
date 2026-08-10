@@ -8,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.MediaAccountType
 import cloud.cyberverse.asterion.data.model.MediaProgressRequest
 import cloud.cyberverse.asterion.data.remote.AnimeApiService
@@ -88,7 +89,7 @@ class AnimeEpisodePlayerViewModel(
                 selectedIndex = 0
                 playSource(selectedIndex)
             } catch (error: Exception) {
-                _state.value = AnimeEpisodePlayerState.Error(error.message ?: "Unknown error")
+                _state.value = AnimeEpisodePlayerState.Error(error.userMessage())
             }
         }
 

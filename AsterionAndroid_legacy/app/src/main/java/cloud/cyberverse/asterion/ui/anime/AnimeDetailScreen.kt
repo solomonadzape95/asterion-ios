@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.VideoDownloadManager
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.AnimeEpisode
 import cloud.cyberverse.asterion.data.model.AnimeShow
@@ -110,10 +111,11 @@ fun AnimeDetailScreen(
         when (val current = state) {
             is AnimeDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
 
-            is AnimeDetailState.Error -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load this title: ${current.message}") }
+            is AnimeDetailState.Error -> ErrorState(
+                message = current.message,
+                onRetry = viewModel::retry,
+                modifier = Modifier.padding(padding),
+            )
 
             is AnimeDetailState.Loaded -> {
                 val episodeChunkSize = 100

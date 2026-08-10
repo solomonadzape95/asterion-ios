@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.model.FootballStream
+import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
@@ -49,10 +50,11 @@ fun FootballStreamsScreen(
         when (val current = state) {
             is FootballStreamsState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
 
-            is FootballStreamsState.Error -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text("Couldn't load streams: ${current.message}") }
+            is FootballStreamsState.Error -> ErrorState(
+                message = current.message,
+                onRetry = viewModel::load,
+                modifier = Modifier.padding(padding),
+            )
 
             is FootballStreamsState.Loaded -> LazyColumn(Modifier.padding(padding)) {
                 item {

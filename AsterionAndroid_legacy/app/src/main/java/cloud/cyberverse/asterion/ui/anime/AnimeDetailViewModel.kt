@@ -3,6 +3,7 @@ package cloud.cyberverse.asterion.ui.anime
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.AnimeEpisode
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.AnimeRelatedSeason
 import cloud.cyberverse.asterion.data.model.AnimeShow
 import cloud.cyberverse.asterion.data.model.MediaAccountType
@@ -33,6 +34,8 @@ class AnimeDetailViewModel(
     private val _state = MutableStateFlow<AnimeDetailState>(AnimeDetailState.Loading)
     val state: StateFlow<AnimeDetailState> = _state.asStateFlow()
 
+    private var currentSlug = initialSlug
+
     init {
         load(initialSlug)
     }
@@ -60,7 +63,11 @@ class AnimeDetailViewModel(
         }
     }
 
+    /** Retries whichever season is currently on screen, not just the one we opened with. */
+    fun retry() = load(currentSlug)
+
     private fun load(slug: String) {
+        currentSlug = slug
         _state.value = AnimeDetailState.Loading
         viewModelScope.launch {
             _state.value = try {
@@ -75,7 +82,7 @@ class AnimeDetailViewModel(
                     isBookmarked = mediaAccountRepository.isBookmarked(MediaAccountType.ANIME, show.id),
                 )
             } catch (error: Exception) {
-                AnimeDetailState.Error(error.message ?: "Unknown error")
+                AnimeDetailState.Error(error.userMessage())
             }
         }
     }

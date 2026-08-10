@@ -3,6 +3,7 @@ package cloud.cyberverse.asterion.ui.movies
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.MediaAccountType
+import cloud.cyberverse.asterion.ui.common.userMessage
 import cloud.cyberverse.asterion.data.model.MovieShow
 import cloud.cyberverse.asterion.data.remote.MovieApiService
 import cloud.cyberverse.asterion.data.sync.MediaAccountRepository
@@ -30,6 +31,11 @@ class MovieDetailViewModel(
     val state: StateFlow<MovieDetailState> = _state.asStateFlow()
 
     init {
+        load()
+    }
+
+    fun load() {
+        _state.value = MovieDetailState.Loading
         viewModelScope.launch {
             _state.value = try {
                 val show = api.show(slug)
@@ -39,7 +45,7 @@ class MovieDetailViewModel(
                 if (mediaAccountRepository.snapshot.value == null) mediaAccountRepository.refresh()
                 MovieDetailState.Loaded(show, mediaAccountRepository.isBookmarked(MediaAccountType.MOVIE, slug))
             } catch (error: Exception) {
-                MovieDetailState.Error(error.message ?: "Unknown error")
+                MovieDetailState.Error(error.userMessage())
             }
         }
     }
