@@ -37,6 +37,7 @@ import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import cloud.cyberverse.asterion.ui.components.AsterionWordmark
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
 import cloud.cyberverse.asterion.ui.components.FastScrollbar
+import cloud.cyberverse.asterion.ui.components.CatalogSkeleton
 import cloud.cyberverse.asterion.ui.components.CoverCard
 import cloud.cyberverse.asterion.ui.components.EmptyState
 import cloud.cyberverse.asterion.ui.components.ErrorState
@@ -91,7 +92,7 @@ fun NovelsListScreen(onNovelClick: (Novel) -> Unit, viewModel: NovelsListViewMod
                     }
                 }
 
-                discover.isLoading -> AsterionLoadingBox()
+                discover.isLoading -> CatalogSkeleton()
 
                 discover.novels.isEmpty() && discover.error != null -> ErrorState(
                     message = discover.error!!,

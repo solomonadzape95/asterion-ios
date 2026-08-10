@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.ui.theme.OverlayColors
 import cloud.cyberverse.asterion.data.model.MovieTitle
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
+import cloud.cyberverse.asterion.ui.components.CatalogSkeleton
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
 import cloud.cyberverse.asterion.ui.components.FastScrollbar
@@ -109,7 +110,7 @@ fun MovieCatalogScreen(onTitleClick: (MovieTitle) -> Unit, viewModel: MovieCatal
                 }
             } else {
                 when (val current = state) {
-                    is MovieCatalogState.Loading -> AsterionLoadingBox()
+                    is MovieCatalogState.Loading -> CatalogSkeleton()
 
                     // Only take over the screen when there is genuinely nothing to show. If the
                     // discover grid loaded, a failed "trending" call shouldn't blank it.

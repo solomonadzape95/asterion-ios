@@ -1,6 +1,9 @@
 package cloud.cyberverse.asterion.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -54,7 +57,11 @@ fun ExpandableSynopsis(rawSummary: String?, modifier: Modifier = Modifier) {
     val preview = remember(cleanSummary) { synopsisPreview(cleanSummary, PREVIEW_LENGTH) }
     val canToggle = preview != cleanSummary
 
-    Column(modifier) {
+    Column(
+        modifier.animateContentSize(
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        ),
+    ) {
         Text(
             text = if (expanded) cleanSummary else preview,
             style = MaterialTheme.typography.bodyLarge,

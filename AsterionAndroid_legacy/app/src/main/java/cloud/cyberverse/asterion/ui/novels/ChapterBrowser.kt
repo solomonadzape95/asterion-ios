@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -213,6 +215,7 @@ fun ChapterRangeRail(
 ) {
     if (totalChapters <= CHAPTER_RANGE_SIZE) return
     val rangeCount = (totalChapters + CHAPTER_RANGE_SIZE - 1) / CHAPTER_RANGE_SIZE
+    val haptics = LocalHapticFeedback.current
 
     LazyRow(
         modifier = modifier.fillMaxWidth(),
@@ -234,7 +237,10 @@ fun ChapterRangeRail(
                             MaterialTheme.colorScheme.surfaceVariant
                         },
                     )
-                    .clickable { onRangeSelected(index) }
+                    .clickable {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onRangeSelected(index)
+                    }
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -259,6 +265,7 @@ fun ChapterLayoutToggle(
     onLayoutChange: (ChapterLayout) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .clip(PillShape)
@@ -282,7 +289,10 @@ fun ChapterLayoutToggle(
                     .size(width = 40.dp, height = 30.dp)
                     .clip(PillShape)
                     .background(container)
-                    .clickable { onLayoutChange(option) },
+                    .clickable {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onLayoutChange(option)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

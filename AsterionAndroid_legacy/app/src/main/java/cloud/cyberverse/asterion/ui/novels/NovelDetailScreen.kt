@@ -43,6 +43,7 @@ import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.model.Chapter
 import cloud.cyberverse.asterion.data.model.Novel
+import cloud.cyberverse.asterion.ui.components.DetailSkeleton
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionFilledButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -126,7 +127,7 @@ fun NovelDetailScreen(
         },
     ) { padding ->
         when (val current = state) {
-            is NovelDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
+            is NovelDetailState.Loading -> DetailSkeleton(Modifier.padding(padding))
 
             is NovelDetailState.Error -> ErrorState(
                 message = current.message,
@@ -285,7 +286,7 @@ fun NovelDetailScreen(
                                     isRead = isRead,
                                     isDownloaded = false,
                                     onClick = { onChapterClick(chapter) },
-                                    modifier = Modifier.padding(horizontal = 0.dp),
+                                    modifier = Modifier.animateItem(),
                                 )
                             } else {
                                 ChapterRow(
@@ -293,7 +294,7 @@ fun NovelDetailScreen(
                                     isRead = isRead,
                                     isDownloaded = false,
                                     onClick = { onChapterClick(chapter) },
-                                    modifier = Modifier.padding(horizontal = 20.dp),
+                                    modifier = Modifier.animateItem().padding(horizontal = 20.dp),
                                 )
                             }
                         }

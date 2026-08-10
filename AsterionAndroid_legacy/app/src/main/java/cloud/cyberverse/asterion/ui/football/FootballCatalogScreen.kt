@@ -68,13 +68,18 @@ fun FootballCatalogScreen(onMatchClick: (FootballMatch) -> Unit, viewModel: Foot
 
                 LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
                     groups.forEach { (day, matches) ->
-                        item(key = "header-$day") {
+                        // Sticky, so scrolling a multi-day fixture list never leaves you unsure
+                        // which day the row under your thumb belongs to.
+                        stickyHeader(key = "header-$day") {
                             Text(
                                 dayLabel(day),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 letterSpacing = 1.sp,
-                                modifier = Modifier.padding(top = 20.dp, bottom = 8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.background)
+                                    .padding(top = 20.dp, bottom = 8.dp),
                             )
                         }
                         items(matches, key = { it.id }) { match ->

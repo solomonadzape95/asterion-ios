@@ -6,6 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.draw.clip
+import cloud.cyberverse.asterion.ui.theme.PillShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -57,8 +63,56 @@ fun DownloadPlannerSheet(
             }
         }
 
+        // Picking episode 430 of 500 by dragging a 280dp window was the worst list in the app.
+        // Ranges narrow it first, and "select visible" acts on what the range shows rather than
+        // forcing all-or-nothing.
+        val rangeSize = 100
+        var selectedRange by remember(units.size) { mutableStateOf(0) }
+        val visibleUnits = remember(units, selectedRange) {
+            units.drop(selectedRange * rangeSize).take(rangeSize)
+        }
+
+        if (units.size > rangeSize) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 12.dp),
+            ) {
+                items((0 until (units.size + rangeSize - 1) / rangeSize).toList()) { index ->
+                    val isSelected = index == selectedRange
+                    val start = index * rangeSize + 1
+                    val end = minOf((index + 1) * rangeSize, units.size)
+                    Box(
+                        Modifier
+                            .clip(PillShape)
+                            .background(
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                },
+                            )
+                            .clickable { selectedRange = index }
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                    ) {
+                        Text(
+                            "$start-$end",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            }
+            TextButton(onClick = { selected = selected + visibleUnits.map { it.id } }) {
+                Text("Select these ${visibleUnits.size}")
+            }
+        }
+
         LazyColumn(modifier = Modifier.fillMaxWidth().height(280.dp).padding(top = 12.dp)) {
-            items(units, key = { it.id }) { unit ->
+            items(visibleUnits, key = { it.id }) { unit ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

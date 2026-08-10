@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import cloud.cyberverse.asterion.ui.theme.OverlayColors
 import cloud.cyberverse.asterion.data.model.AnimeTitle
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
+import cloud.cyberverse.asterion.ui.components.CatalogSkeleton
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
 import cloud.cyberverse.asterion.ui.components.FastScrollbar
@@ -111,7 +112,7 @@ fun AnimeCatalogScreen(onTitleClick: (AnimeTitle) -> Unit, viewModel: AnimeCatal
                 }
             } else {
                 when (val current = state) {
-                    is AnimeCatalogState.Loading -> AsterionLoadingBox()
+                    is AnimeCatalogState.Loading -> CatalogSkeleton()
 
                     // Only take over the screen when there is genuinely nothing to show. If the
                     // discover grid loaded, a failed "recently updated" call shouldn't blank it.

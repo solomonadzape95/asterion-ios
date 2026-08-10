@@ -55,6 +55,7 @@ import cloud.cyberverse.asterion.data.model.MovieEpisode
 import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
 import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
 import cloud.cyberverse.asterion.ui.theme.PillShape
+import cloud.cyberverse.asterion.ui.components.DetailSkeleton
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionFilledButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -132,7 +133,7 @@ fun MovieDetailScreen(
         },
     ) { padding ->
         when (val current = state) {
-            is MovieDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
+            is MovieDetailState.Loading -> DetailSkeleton(Modifier.padding(padding))
 
             is MovieDetailState.Error -> ErrorState(
                 message = current.message,

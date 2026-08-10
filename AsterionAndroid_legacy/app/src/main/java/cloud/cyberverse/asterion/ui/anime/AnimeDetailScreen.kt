@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextOverflow
 import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
 import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
+import cloud.cyberverse.asterion.ui.components.DetailSkeleton
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionFilledButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -108,7 +109,7 @@ fun AnimeDetailScreen(
         },
     ) { padding ->
         when (val current = state) {
-            is AnimeDetailState.Loading -> AsterionLoadingBox(Modifier.fillMaxSize().padding(padding))
+            is AnimeDetailState.Loading -> DetailSkeleton(Modifier.padding(padding))
 
             is AnimeDetailState.Error -> ErrorState(
                 message = current.message,
