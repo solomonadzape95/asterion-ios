@@ -194,6 +194,9 @@ fun AsterionNavHost() {
                 MovieDetailScreen(
                     slug = slug,
                     onPlayClick = { navController.navigate("movies/play/$slug") },
+                    onPlayEpisode = { episode ->
+                        navController.navigate("movies/play/${URLEncoder.encode(episode.id, "UTF-8")}")
+                    },
                     onNavigateBack = { navController.popBackStack() },
                 )
             }

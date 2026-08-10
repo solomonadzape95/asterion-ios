@@ -13,19 +13,19 @@ import cloud.cyberverse.asterion.ui.settings.AppSettingsPreferences
 import cloud.cyberverse.asterion.ui.settings.AppThemeMode
 import org.koin.compose.koinInject
 
-private val LightColors = lightColorScheme(
-    primary = AsterionCrimson,
+private fun lightColors(accent: AccentColor) = lightColorScheme(
+    primary = accent.light,
     onPrimary = AsterionLightSurface,
-    primaryContainer = AsterionLightAccentContainer,
-    onPrimaryContainer = AsterionLightOnAccentContainer,
-    secondary = AsterionCrimson,
+    primaryContainer = accent.lightContainer,
+    onPrimaryContainer = accent.onLightContainer,
+    secondary = accent.light,
     onSecondary = AsterionLightSurface,
-    secondaryContainer = AsterionLightAccentContainer,
-    onSecondaryContainer = AsterionLightOnAccentContainer,
-    tertiary = AsterionCrimson,
+    secondaryContainer = accent.lightContainer,
+    onSecondaryContainer = accent.onLightContainer,
+    tertiary = accent.light,
     onTertiary = AsterionLightSurface,
-    tertiaryContainer = AsterionLightAccentContainer,
-    onTertiaryContainer = AsterionLightOnAccentContainer,
+    tertiaryContainer = accent.lightContainer,
+    onTertiaryContainer = accent.onLightContainer,
     background = AsterionLightBackground,
     onBackground = AsterionLightOnBackground,
     surface = AsterionLightSurface,
@@ -35,19 +35,19 @@ private val LightColors = lightColorScheme(
     outline = AsterionLightBorder,
 )
 
-private val DarkColors = darkColorScheme(
-    primary = AsterionCrimsonDark,
+private fun darkColors(accent: AccentColor) = darkColorScheme(
+    primary = accent.dark,
     onPrimary = AsterionDarkBackground,
-    primaryContainer = AsterionDarkAccentContainer,
-    onPrimaryContainer = AsterionDarkOnAccentContainer,
-    secondary = AsterionCrimsonDark,
+    primaryContainer = accent.darkContainer,
+    onPrimaryContainer = accent.onDarkContainer,
+    secondary = accent.dark,
     onSecondary = AsterionDarkBackground,
-    secondaryContainer = AsterionDarkAccentContainer,
-    onSecondaryContainer = AsterionDarkOnAccentContainer,
-    tertiary = AsterionCrimsonDark,
+    secondaryContainer = accent.darkContainer,
+    onSecondaryContainer = accent.onDarkContainer,
+    tertiary = accent.dark,
     onTertiary = AsterionDarkBackground,
-    tertiaryContainer = AsterionDarkAccentContainer,
-    onTertiaryContainer = AsterionDarkOnAccentContainer,
+    tertiaryContainer = accent.darkContainer,
+    onTertiaryContainer = accent.onDarkContainer,
     background = AsterionDarkBackground,
     onBackground = AsterionDarkOnBackground,
     surface = AsterionDarkSurface,
@@ -71,7 +71,9 @@ fun AsterionTheme(
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK -> true
     }
-    val colors = if (useDarkTheme) DarkColors else LightColors
+    val colors = remember(useDarkTheme, settings.accent) {
+        if (useDarkTheme) darkColors(settings.accent) else lightColors(settings.accent)
+    }
     val typography = remember(settings.font) { asterionTypography(settings.font.headingFontFamily()) }
     MaterialTheme(colorScheme = colors, typography = typography, shapes = AsterionShapes, content = content)
 }

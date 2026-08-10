@@ -49,6 +49,10 @@ import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.AnimeEpisode
 import cloud.cyberverse.asterion.data.model.AnimeShow
 import cloud.cyberverse.asterion.data.remote.AnimeApiService
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.style.TextOverflow
+import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
+import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionFilledButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -119,27 +123,51 @@ fun AnimeDetailScreen(
 
                 LazyColumn(state = listState, modifier = Modifier.padding(padding)) {
                 item(key = "hero") {
-                    Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        AsterionAsyncImage(
-                            model = current.show.imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .width(156.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                        )
-                        Text(
-                            current.show.title,
-                            style = MaterialTheme.typography.headlineMedium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 18.dp),
-                        )
-                        current.show.studio?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Column {
+                        BlurredArtworkBanner(model = current.show.imageUrl, height = 300.dp) {
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                AsterionAsyncImage(
+                                    model = current.show.imageUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .width(116.dp)
+                                        .aspectRatio(2f / 3f)
+                                        .shadow(18.dp, RoundedCornerShape(CoverCornerRadius), clip = false)
+                                        .clip(RoundedCornerShape(CoverCornerRadius))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                )
+                                Column(Modifier.weight(1f).padding(bottom = 6.dp)) {
+                                    Text(
+                                        current.show.title,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    current.show.studio?.let {
+                                        Text(
+                                            it,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.padding(top = 4.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 14.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp),
+                        ) {
                             current.show.status?.let { MetaText(it) }
                             current.show.subEpisodes?.let { MetaText("$it episodes") }
                             current.show.malScore?.let {
@@ -153,7 +181,7 @@ fun AnimeDetailScreen(
                         if (current.show.genres.isNotEmpty()) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(top = 12.dp),
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp),
                             ) {
                                 current.show.genres.take(4).forEach { genre ->
                                     Text(

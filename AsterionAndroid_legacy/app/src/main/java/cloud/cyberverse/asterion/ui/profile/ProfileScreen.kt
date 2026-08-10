@@ -3,6 +3,7 @@ package cloud.cyberverse.asterion.ui.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,6 +62,17 @@ import cloud.cyberverse.asterion.ui.novels.ReaderPreferences
 import cloud.cyberverse.asterion.ui.novels.ReaderSettings
 import cloud.cyberverse.asterion.ui.novels.ReaderSettingsSheet
 import cloud.cyberverse.asterion.ui.novels.displayName
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import cloud.cyberverse.asterion.ui.theme.AccentColor
+import cloud.cyberverse.asterion.ui.theme.AsterionDarkBackground
+import cloud.cyberverse.asterion.ui.theme.AsterionLightSurface
+import cloud.cyberverse.asterion.ui.theme.PillShape
 import cloud.cyberverse.asterion.ui.settings.AppSettings
 import cloud.cyberverse.asterion.ui.settings.AppSettingsPreferences
 import cloud.cyberverse.asterion.ui.settings.AppThemeMode
@@ -165,6 +177,7 @@ fun ProfileScreen(
 
             SectionLabel("Appearance", modifier = Modifier.padding(top = 28.dp, bottom = 10.dp))
             AppearanceCard(
+                onAccentSelected = { accent -> scope.launch { appSettingsPreferences.setAccent(accent) } },
                 settings = appSettings,
                 onThemeSelected = { mode -> scope.launch { appSettingsPreferences.setThemeMode(mode) } },
                 onFontSelected = { font -> scope.launch { appSettingsPreferences.setFont(font) } },
@@ -281,57 +294,154 @@ private fun AppearanceCard(
     settings: AppSettings,
     onThemeSelected: (AppThemeMode) -> Unit,
     onFontSelected: (ReaderFont) -> Unit,
+    onAccentSelected: (AccentColor) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp),
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(PhosphorIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text(
-                "Theme",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-            AppThemeMode.entries.forEach { mode ->
-                FilterChip(
-                    selected = settings.themeMode == mode,
-                    onClick = { onThemeSelected(mode) },
-                    label = { Text(mode.displayName()) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                )
+        SettingGroup(icon = PhosphorIcons.Palette, title = "Accent") {
+            // Swatches rather than named chips: the choice is a colour, so the control should show
+            // the colour. A row of words would make you tap each one to find out what it looks like.
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                AccentColor.entries.forEach { accent ->
+                    AccentSwatch(
+                        accent = accent,
+                        selected = settings.accent == accent,
+                        onClick = { onAccentSelected(accent) },
+                    )
+                }
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 18.dp)) {
-            Icon(PhosphorIcons.TextFields, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        SettingGroup(icon = PhosphorIcons.Palette, title = "Theme") {
+            SegmentedRow(
+                options = AppThemeMode.entries,
+                selected = settings.themeMode,
+                label = { it.displayName() },
+                onSelected = onThemeSelected,
+            )
+        }
+
+        SettingGroup(icon = PhosphorIcons.TextFields, title = "App font") {
+            SegmentedRow(
+                options = ReaderFont.entries,
+                selected = settings.font,
+                label = { it.displayName() },
+                onSelected = onFontSelected,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingGroup(
+    icon: ImageVector,
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
             Text(
-                "App Font",
+                title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-            ReaderFont.entries.forEach { font ->
-                FilterChip(
-                    selected = settings.font == font,
-                    onClick = { onFontSelected(font) },
-                    label = { Text(font.displayName()) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+        content()
+    }
+}
+
+@Composable
+private fun AccentSwatch(
+    accent: AccentColor,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val isDark = isSystemInDarkTheme()
+    val swatch = if (isDark) accent.dark else accent.light
+    // The ring reads as "selected" without recolouring the swatch itself, which would misrepresent
+    // the colour being chosen.
+    val ring by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onBackground else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "accentRing",
+    )
+    Box(
+        Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .border(2.dp, ring, CircleShape)
+            .padding(4.dp)
+            .clip(CircleShape)
+            .background(swatch)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = accent.label },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(
+                PhosphorIcons.Check,
+                contentDescription = null,
+                tint = if (isDark) AsterionDarkBackground else AsterionLightSurface,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** A pill-track segmented control, replacing loose Material FilterChips. */
+@Composable
+private fun <T> SegmentedRow(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelected: (T) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(PillShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            val container by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "segmentContainer",
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(38.dp)
+                    .clip(PillShape)
+                    .background(container)
+                    .clickable { onSelected(option) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label(option),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         }

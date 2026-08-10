@@ -53,6 +53,7 @@ import cloud.cyberverse.asterion.data.model.MovieTitle
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
+import cloud.cyberverse.asterion.ui.components.FastScrollbar
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingIndicator
 import cloud.cyberverse.asterion.ui.components.AsterionSearchField

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import cloud.cyberverse.asterion.ui.novels.ChapterLayout
+import cloud.cyberverse.asterion.ui.theme.AccentColor
 import cloud.cyberverse.asterion.ui.novels.ReaderFont
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -21,6 +22,7 @@ data class AppSettings(
     // How chapters are laid out on a novel. A standing preference: someone who reads long series
     // wants the numbered grid every time, not to re-pick it on every novel they open.
     val chapterLayout: ChapterLayout = ChapterLayout.LIST,
+    val accent: AccentColor = AccentColor.Gold,
 )
 
 /** Persisted, device-local app preferences (theme, font) - separate from [ReaderPreferences],
@@ -30,6 +32,7 @@ class AppSettingsPreferences(private val context: Context) {
         val THEME_MODE = stringPreferencesKey("app_theme_mode")
         val FONT = stringPreferencesKey("app_font")
         val CHAPTER_LAYOUT = stringPreferencesKey("chapter_layout")
+        val ACCENT = stringPreferencesKey("accent_color")
     }
 
     val settings: Flow<AppSettings> = context.appSettingsDataStore.data.map { prefs ->
@@ -39,6 +42,8 @@ class AppSettingsPreferences(private val context: Context) {
             font = prefs[Keys.FONT]?.let { runCatching { ReaderFont.valueOf(it) }.getOrNull() } ?: ReaderFont.SERIF,
             chapterLayout = prefs[Keys.CHAPTER_LAYOUT]
                 ?.let { runCatching { ChapterLayout.valueOf(it) }.getOrNull() } ?: ChapterLayout.LIST,
+            accent = prefs[Keys.ACCENT]
+                ?.let { runCatching { AccentColor.valueOf(it) }.getOrNull() } ?: AccentColor.Gold,
         )
     }
 
@@ -52,5 +57,9 @@ class AppSettingsPreferences(private val context: Context) {
 
     suspend fun setChapterLayout(layout: ChapterLayout) {
         context.appSettingsDataStore.edit { it[Keys.CHAPTER_LAYOUT] = layout.name }
+    }
+
+    suspend fun setAccent(accent: AccentColor) {
+        context.appSettingsDataStore.edit { it[Keys.ACCENT] = accent.name }
     }
 }

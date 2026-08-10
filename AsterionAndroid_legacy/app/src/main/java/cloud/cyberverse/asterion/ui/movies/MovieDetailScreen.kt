@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,12 @@ import cloud.cyberverse.asterion.ui.components.ErrorState
 import cloud.cyberverse.asterion.data.local.DownloadContentType
 import cloud.cyberverse.asterion.data.model.MovieShow
 import cloud.cyberverse.asterion.data.remote.MovieApiService
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.shadow
+import cloud.cyberverse.asterion.data.model.MovieEpisode
+import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
+import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
+import cloud.cyberverse.asterion.ui.theme.PillShape
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
 import cloud.cyberverse.asterion.ui.components.AsterionFilledButton
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingBox
@@ -65,6 +72,7 @@ import org.koin.core.parameter.parametersOf
 fun MovieDetailScreen(
     slug: String,
     onPlayClick: (MovieShow) -> Unit,
+    onPlayEpisode: (MovieEpisode) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     viewModel: MovieDetailViewModel = koinViewModel(parameters = { parametersOf(slug) }),
     videoDownloadManager: VideoDownloadManager = koinInject(),
@@ -138,38 +146,157 @@ fun MovieDetailScreen(
                     .padding(padding)
                     .verticalScroll(rememberScrollState()),
             ) {
-                Column(Modifier.padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    AsterionAsyncImage(
-                        model = current.show.imageUrl,
-                        contentDescription = null,
+                BlurredArtworkBanner(model = current.show.imageUrl, height = 300.dp) {
+                    Row(
                         modifier = Modifier
-                            .padding(top = 20.dp)
-                            .width(156.dp)
-                            .aspectRatio(2f / 3f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                    )
-                    Text(
-                        current.show.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 18.dp),
-                    )
-                    current.show.director?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        AsterionAsyncImage(
+                            model = current.show.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .width(116.dp)
+                                .aspectRatio(2f / 3f)
+                                .shadow(18.dp, RoundedCornerShape(CoverCornerRadius), clip = false)
+                                .clip(RoundedCornerShape(CoverCornerRadius))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                        )
+                        Column(Modifier.weight(1f).padding(bottom = 6.dp)) {
+                            Text(
+                                current.show.title,
+                                style = MaterialTheme.typography.headlineMedium,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            current.show.director?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
                     }
+                }
 
+                Column(Modifier.padding(horizontal = 20.dp)) {
                     val ratings = remember(current.show) { ratingsFor(current.show) }
                     if (ratings.isNotEmpty()) {
-                        RatingsStrip(ratings, modifier = Modifier.padding(top = 12.dp))
+                        RatingsStrip(ratings, modifier = Modifier.padding(top = 4.dp))
                     }
 
                     AsterionFilledButton(
-                        text = if (current.show.isSeries) "Play S1 · E1" else "Play",
+                        text = if (current.show.isSeries) "Play first episode" else "Play",
                         icon = PhosphorIcons.PlayCircle,
-                        onClick = { onPlayClick(current.show) },
-                        modifier = Modifier.padding(top = 18.dp).fillMaxWidth(),
+                        onClick = {
+                            val first = current.episodes.minByOrNull { it.season * 1000 + it.number }
+                            if (first != null) onPlayEpisode(first) else onPlayClick(current.show)
+                        },
+                        modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
                     )
+                }
+
+                // A series previously had no way to reach anything but the first episode: seasons
+                // appeared only as a line of text in the facts grid. Each episode carries its own
+                // slug, which the playback endpoint accepts exactly like a film's, so these are
+                // real destinations rather than a decorative picker.
+                if (current.episodes.isNotEmpty()) {
+                    val seasons = remember(current.episodes) {
+                        current.episodes.map { it.season }.distinct().sorted()
+                    }
+                    var selectedSeason by rememberSaveable(seasons) {
+                        mutableStateOf(seasons.firstOrNull() ?: 1)
+                    }
+                    val episodesInSeason = remember(current.episodes, selectedSeason) {
+                        current.episodes.filter { it.season == selectedSeason }.sortedBy { it.number }
+                    }
+
+                    Column(Modifier.padding(top = 26.dp)) {
+                        SectionHeader(
+                            title = "Episodes",
+                            subtitle = if (episodesInSeason.size == 1) {
+                                "1 episode"
+                            } else {
+                                "${episodesInSeason.size} episodes"
+                            },
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+
+                        if (seasons.size > 1) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                modifier = Modifier.padding(top = 12.dp),
+                            ) {
+                                items(seasons) { season ->
+                                    val selected = season == selectedSeason
+                                    Box(
+                                        Modifier
+                                            .height(34.dp)
+                                            .clip(PillShape)
+                                            .background(
+                                                if (selected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.surfaceVariant
+                                                },
+                                            )
+                                            .clickable { selectedSeason = season }
+                                            .padding(horizontal = 16.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            "Season $season",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (selected) {
+                                                MaterialTheme.colorScheme.onPrimary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Numbered tiles, matching the chapter grid: for a long season the episode
+                        // number is what anyone navigates by.
+                        Column(
+                            Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            episodesInSeason.chunked(4).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    row.forEach { episode ->
+                                        Box(
+                                            Modifier
+                                                .weight(1f)
+                                                .height(52.dp)
+                                                .clip(MaterialTheme.shapes.medium)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .clickable { onPlayEpisode(episode) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                episode.number.toString(),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                    // Keeps the last row's tiles the same width as every other row.
+                                    repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 val facts = remember(current.show) { factsFor(current.show) }

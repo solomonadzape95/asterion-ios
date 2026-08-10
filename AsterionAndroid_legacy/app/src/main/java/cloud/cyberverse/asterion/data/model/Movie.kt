@@ -66,3 +66,17 @@ data class MoviePlaybackSources(
     val sources: List<MovieStreamSource> = emptyList(),
     @SerialName("verified_direct_count") val verifiedDirectCount: Int = 0,
 )
+
+/**
+ * One episode of a series. [id] is the episode's own slug on the source, which the playback
+ * endpoint accepts exactly like a film's - so an episode is playable in its own right rather than
+ * needing season/episode parameters bolted onto the show.
+ */
+@Serializable
+data class MovieEpisode(
+    val id: String,
+    val season: Int = 0,
+    val number: Int = 0,
+    val title: String = "",
+    val url: String? = null,
+)

@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.cyberverse.asterion.data.model.MediaAccountType
 import cloud.cyberverse.asterion.ui.common.userMessage
+import cloud.cyberverse.asterion.data.model.MovieEpisode
 import cloud.cyberverse.asterion.data.model.MovieShow
 import cloud.cyberverse.asterion.data.remote.MovieApiService
 import cloud.cyberverse.asterion.data.sync.MediaAccountRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface MovieDetailState {
@@ -18,6 +20,8 @@ sealed interface MovieDetailState {
         val show: MovieShow,
         val isBookmarked: Boolean = false,
         val isBookmarkUpdating: Boolean = false,
+        /** Empty for films, and for series whose episode list could not be scraped. */
+        val episodes: List<MovieEpisode> = emptyList(),
     ) : MovieDetailState
     data class Error(val message: String) : MovieDetailState
 }
@@ -43,9 +47,22 @@ class MovieDetailViewModel(
                 // if nothing's loaded it yet, so opening several detail screens in a row doesn't
                 // re-fetch the whole account snapshot each time.
                 if (mediaAccountRepository.snapshot.value == null) mediaAccountRepository.refresh()
-                MovieDetailState.Loaded(show, mediaAccountRepository.isBookmarked(MediaAccountType.MOVIE, slug))
+                MovieDetailState.Loaded(
+                    show = show,
+                    isBookmarked = mediaAccountRepository.isBookmarked(MediaAccountType.MOVIE, slug),
+                )
             } catch (error: Exception) {
                 MovieDetailState.Error(error.userMessage())
+            }
+
+            // Episodes refine a screen that already rendered; a series with an unscrapeable
+            // episode list should still show its details rather than fail outright.
+            val loaded = _state.value as? MovieDetailState.Loaded ?: return@launch
+            if (!loaded.show.isSeries) return@launch
+            val episodes = runCatching { api.showEpisodes(slug) }.getOrDefault(emptyList())
+            if (episodes.isEmpty()) return@launch
+            _state.update { current ->
+                (current as? MovieDetailState.Loaded)?.copy(episodes = episodes) ?: current
             }
         }
     }

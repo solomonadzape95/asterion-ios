@@ -36,6 +36,7 @@ import cloud.cyberverse.asterion.ui.components.AsterionSearchField
 import cloud.cyberverse.asterion.ui.components.AsterionTopBar
 import cloud.cyberverse.asterion.ui.components.AsterionWordmark
 import cloud.cyberverse.asterion.ui.components.BackToTopButton
+import cloud.cyberverse.asterion.ui.components.FastScrollbar
 import cloud.cyberverse.asterion.ui.components.CoverCard
 import cloud.cyberverse.asterion.ui.components.EmptyState
 import cloud.cyberverse.asterion.ui.components.ErrorState
@@ -220,6 +221,11 @@ private fun RankingsGrid(
                 }
             }
         }
+
+        FastScrollbar(
+            state = gridState,
+            totalItems = novels.size,
+        )
 
         BackToTopButton(
             visible = gridState.firstVisibleItemIndex > 4,
