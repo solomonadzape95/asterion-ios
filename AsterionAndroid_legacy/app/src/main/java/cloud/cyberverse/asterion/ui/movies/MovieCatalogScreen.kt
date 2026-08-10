@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cloud.cyberverse.asterion.ui.theme.OverlayColors
 import cloud.cyberverse.asterion.data.model.MovieTitle
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionAsyncImage
@@ -255,7 +256,7 @@ private fun MovieFeaturedBanner(titles: List<MovieTitle>, onTitleClick: (MovieTi
                 Box(
                     Modifier.fillMaxSize().background(
                         Brush.horizontalGradient(
-                            listOf(Color.Black.copy(alpha = 0.90f), Color.Black.copy(alpha = 0.28f)),
+                            listOf(OverlayColors.BannerScrimStrong, OverlayColors.BannerScrimSoft),
                         ),
                     ),
                 )
@@ -270,7 +271,7 @@ private fun MovieFeaturedBanner(titles: List<MovieTitle>, onTitleClick: (MovieTi
                         Text(
                             featured.title,
                             style = MaterialTheme.typography.headlineSmall,
-                            color = Color.White,
+                            color = OverlayColors.Content,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 6.dp),
@@ -311,7 +312,7 @@ private fun MovieFeaturedBanner(titles: List<MovieTitle>, onTitleClick: (MovieTi
                     Modifier
                         .size(if (isSelected) 8.dp else 6.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.4f))
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary else OverlayColors.InactiveIndicator)
                         .clickable { scope.launch { pagerState.animateScrollToPage(dotIndex) } },
                 )
             }
@@ -326,10 +327,10 @@ private fun BannerBadge(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelSmall,
-        color = Color.White,
+        color = OverlayColors.Content,
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.18f))
+            .background(OverlayColors.ChipSurface)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }

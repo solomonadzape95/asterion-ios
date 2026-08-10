@@ -1,5 +1,7 @@
 package cloud.cyberverse.asterion.ui.components
 
+import cloud.cyberverse.asterion.ui.theme.OverlayColors
+
 import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.Context
@@ -227,12 +229,12 @@ fun VideoPlayerScaffold(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color.Black.copy(alpha = 0.55f))
+                        .background(OverlayColors.ControlScrim)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
-                    if (!forward) Icon(PhosphorIcons.FastRewind, contentDescription = null, tint = Color.White)
-                    Text("10s", color = Color.White, modifier = Modifier.padding(horizontal = 4.dp))
-                    if (forward) Icon(PhosphorIcons.FastForward, contentDescription = null, tint = Color.White)
+                    if (!forward) Icon(PhosphorIcons.FastRewind, contentDescription = null, tint = OverlayColors.Content)
+                    Text("10s", color = OverlayColors.Content, modifier = Modifier.padding(horizontal = 4.dp))
+                    if (forward) Icon(PhosphorIcons.FastForward, contentDescription = null, tint = OverlayColors.Content)
                 }
             }
         }
@@ -247,23 +249,23 @@ fun VideoPlayerScaffold(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Black.copy(alpha = 0.72f))
+                        .background(OverlayColors.PanelScrim)
                         .padding(20.dp),
                 ) {
-                    Icon(PhosphorIcons.ErrorOutline, contentDescription = null, tint = Color.White)
+                    Icon(PhosphorIcons.ErrorOutline, contentDescription = null, tint = OverlayColors.Content)
                     Text(
                         playbackError,
-                        color = Color.White,
+                        color = OverlayColors.Content,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                     Text(
                         if (sources.size > 1) "Pick another source below, or retry." else "Retry, or go back.",
-                        color = Color.White.copy(alpha = 0.7.toFloat()),
+                        color = OverlayColors.ContentMuted,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     OutlinedButton(
                         onClick = onRetry,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = OverlayColors.Content),
                         modifier = Modifier.padding(top = 12.dp),
                     ) { Text("Retry") }
                 }
@@ -275,10 +277,10 @@ fun VideoPlayerScaffold(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black.copy(alpha = 0.65f))
+                        .background(OverlayColors.BubbleScrim)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
-                    Text(formatMillis(targetMs), color = Color.White)
+                    Text(formatMillis(targetMs), color = OverlayColors.Content)
                 }
             }
         }

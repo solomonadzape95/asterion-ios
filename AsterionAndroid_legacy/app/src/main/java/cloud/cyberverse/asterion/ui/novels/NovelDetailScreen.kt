@@ -12,15 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -41,7 +37,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cloud.cyberverse.asterion.data.download.NovelDownloadRepository
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
@@ -66,18 +61,23 @@ import cloud.cyberverse.asterion.ui.components.AsterionIconButton
 import cloud.cyberverse.asterion.ui.components.BlurredArtworkBanner
 import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
 import cloud.cyberverse.asterion.ui.theme.PillShape
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import cloud.cyberverse.asterion.ui.components.AsterionLoadingIndicator
+import cloud.cyberverse.asterion.ui.components.AsterionOutlinedButton
+import cloud.cyberverse.asterion.ui.components.BackToTopButton
+import cloud.cyberverse.asterion.ui.components.FastScrollbar
+import cloud.cyberverse.asterion.ui.settings.AppSettings
+import cloud.cyberverse.asterion.ui.settings.AppSettingsPreferences
 import cloud.cyberverse.asterion.ui.theme.genreColor
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-
-private const val CHAPTER_PAGE_SIZE = 40
-private const val LOAD_MORE_THRESHOLD = 8
-
-// Fixed items ahead of the chapter list in the LazyColumn (hero, synopsis, chapters header) -
-// used to translate a chapter's index into its absolute LazyColumn item index for scroll-to-jumps.
-private const val CHAPTER_LIST_OFFSET = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,11 +90,14 @@ fun NovelDetailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showPlanner by remember { mutableStateOf(false) }
-    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
+    val appSettings: AppSettingsPreferences = koinInject()
+    val settings by appSettings.settings.collectAsState(initial = AppSettings())
+    val chapterLayout = settings.chapterLayout
 
     val showTitleInBar by remember {
-        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 500 }
+        derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 500 }
     }
 
     Scaffold(
@@ -133,101 +136,200 @@ fun NovelDetailScreen(
             )
 
             is NovelDetailState.Loaded -> {
-                var visibleChapterCount by rememberSaveable(current.chapters.size) {
-                    mutableStateOf(minOf(CHAPTER_PAGE_SIZE, current.chapters.size))
+                val chapters = current.chapters
+                // hero + synopsis + header, plus the range rail only when it is shown.
+                val headerCount = if (chapters.size > CHAPTER_RANGE_SIZE) 4 else 3
+                var selectedRange by rememberSaveable(chapters.size) { mutableStateOf(0) }
+                var showJumpDialog by remember { mutableStateOf(false) }
+
+                // One grid drives both layouts: list mode is simply a single-column grid. That
+                // keeps one scroll state, so the scrollbar, range rail and back-to-top all work
+                // identically in either mode instead of needing a parallel implementation.
+                val columns = if (chapterLayout == ChapterLayout.GRID) 3 else 1
+
+                fun scrollToChapterIndex(index: Int) {
+                    if (index < 0 || index >= chapters.size) return
+                    // scrollToItem, not animateScrollToItem: animating to chapter 4,000 would
+                    // travel through every item in between, which is a ride, not a jump.
+                    scope.launch { gridState.scrollToItem(headerCount + index) }
                 }
 
-                LaunchedEffect(listState, current.chapters.size) {
-                    snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
-                        .collect { lastVisibleIndex ->
-                            val lastVisibleChapterIndex = lastVisibleIndex - CHAPTER_LIST_OFFSET
-                            if (lastVisibleChapterIndex >= visibleChapterCount - LOAD_MORE_THRESHOLD &&
-                                visibleChapterCount < current.chapters.size
-                            ) {
-                                visibleChapterCount = minOf(visibleChapterCount + CHAPTER_PAGE_SIZE, current.chapters.size)
+                fun jumpToChapterNumber(number: Int) {
+                    val index = chapters.indexOfFirst { it.chapterNumber == number }
+                    if (index >= 0) {
+                        selectedRange = index / CHAPTER_RANGE_SIZE
+                        scrollToChapterIndex(index)
+                    }
+                }
+
+                // Keep the range rail in step with where the reader actually is, so scrolling
+                // updates the chips rather than leaving them stale.
+                LaunchedEffect(gridState, chapters.size) {
+                    snapshotFlow { gridState.firstVisibleItemIndex }
+                        .collect { first ->
+                            val chapterIndex = (first - headerCount).coerceAtLeast(0)
+                            selectedRange = chapterIndex / CHAPTER_RANGE_SIZE
+                        }
+                }
+
+                Box(Modifier.padding(padding)) {
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Fixed(columns),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 96.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
+                            val resumeChapter = current.resumeChapterNumber
+                                ?.let { number -> chapters.firstOrNull { it.chapterNumber == number } }
+                            NovelHero(
+                                novel = current.novel,
+                                totalChapters = current.totalChapters,
+                                resumeChapter = resumeChapter,
+                                isBookmarked = current.isBookmarked,
+                                isBookmarkUpdating = current.isBookmarkUpdating,
+                                onStartReading = { (resumeChapter ?: chapters.firstOrNull())?.let(onChapterClick) },
+                                onToggleBookmark = viewModel::toggleBookmark,
+                                onDownload = { showPlanner = true },
+                            )
+                        }
+
+                        item(key = "synopsis", span = { GridItemSpan(maxLineSpan) }) {
+                            Column(Modifier.padding(horizontal = 20.dp)) {
+                                SectionHeader(title = "Synopsis")
+                                ExpandableSynopsis(current.novel.summary, modifier = Modifier.padding(top = 8.dp))
                             }
                         }
-                }
 
-                fun jumpToChapterIndex(index: Int) {
-                    if (index < 0 || index >= current.chapters.size) return
-                    if (index >= visibleChapterCount) {
-                        visibleChapterCount = minOf(index + 1, current.chapters.size)
-                    }
-                    // scrollToItem, not animateScrollToItem: animating to chapter 4,000 scrolls
-                    // through every item in between, which is a long ride, not a jump.
-                    scope.launch { listState.scrollToItem(CHAPTER_LIST_OFFSET + index) }
-                }
-
-                LazyColumn(state = listState, modifier = Modifier.padding(padding)) {
-                    item(key = "hero") {
-                        val resumeChapter = current.resumeChapterNumber
-                            ?.let { number -> current.chapters.firstOrNull { it.chapterNumber == number } }
-                        NovelHero(
-                            novel = current.novel,
-                            totalChapters = current.totalChapters,
-                            resumeChapter = resumeChapter,
-                            isBookmarked = current.isBookmarked,
-                            isBookmarkUpdating = current.isBookmarkUpdating,
-                            onStartReading = { (resumeChapter ?: current.chapters.firstOrNull())?.let(onChapterClick) },
-                            onToggleBookmark = viewModel::toggleBookmark,
-                            onDownload = { showPlanner = true },
-                        )
-                    }
-
-                    item(key = "synopsis") {
-                        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                            SectionHeader(title = "Synopsis")
-                            ExpandableSynopsis(current.novel.summary, modifier = Modifier.padding(top = 8.dp))
-                        }
-                    }
-
-                    item(key = "chaptersHeader") {
-                        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                            SectionHeader(
-                                title = "Chapters",
-                                subtitle = when {
-                                    current.isLoadingChapters ->
-                                        "${current.chapters.size} of ${current.totalChapters} loaded…"
-                                    current.isChapterListPartial ->
-                                        "${current.chapters.size} of ${current.totalChapters} chapters available"
-                                    else -> "${current.totalChapters} chapters"
-                                },
-                            )
-                            if (current.chapters.size > CHAPTER_PAGE_SIZE) {
+                        item(key = "chaptersHeader", span = { GridItemSpan(maxLineSpan) }) {
+                            Column(Modifier.padding(horizontal = 20.dp)) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(top = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    OutlinedButton(onClick = { jumpToChapterIndex(0) }) { Text("First chapter") }
-                                    OutlinedButton(onClick = { jumpToChapterIndex(current.chapters.lastIndex) }) { Text("Latest chapter") }
+                                    Box(Modifier.weight(1f)) {
+                                        SectionHeader(
+                                            title = "Chapters",
+                                            subtitle = when {
+                                                current.isLoadingChapters ->
+                                                    "${chapters.size} of ${current.totalChapters} loaded…"
+                                                current.isChapterListPartial ->
+                                                    "${chapters.size} of ${current.totalChapters} available"
+                                                else -> "${current.totalChapters} chapters"
+                                            },
+                                        )
+                                    }
+                                    ChapterLayoutToggle(
+                                        layout = chapterLayout,
+                                        onLayoutChange = { next ->
+                                            scope.launch { appSettings.setChapterLayout(next) }
+                                        },
+                                    )
+                                }
+
+                                if (chapters.size > 1) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(top = 12.dp),
+                                    ) {
+                                        AsterionOutlinedButton(
+                                            text = "First",
+                                            icon = PhosphorIcons.ChevronLeft,
+                                            // These open a chapter now. Previously they only
+                                            // scrolled the list to it, which is not what
+                                            // "read the first chapter" means.
+                                            onClick = { chapters.firstOrNull()?.let(onChapterClick) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        AsterionOutlinedButton(
+                                            text = "Latest",
+                                            icon = PhosphorIcons.ChevronRight,
+                                            onClick = { chapters.lastOrNull()?.let(onChapterClick) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        if (chapters.size > CHAPTER_RANGE_SIZE) {
+                                            AsterionIconButton(
+                                                icon = PhosphorIcons.JumpTo,
+                                                contentDescription = "Jump to chapter",
+                                                onClick = { showJumpDialog = true },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (chapters.size > CHAPTER_RANGE_SIZE) {
+                            item(key = "rangeRail", span = { GridItemSpan(maxLineSpan) }) {
+                                ChapterRangeRail(
+                                    totalChapters = chapters.size,
+                                    selectedRange = selectedRange,
+                                    onRangeSelected = { range ->
+                                        selectedRange = range
+                                        scrollToChapterIndex(range * CHAPTER_RANGE_SIZE)
+                                    },
+                                )
+                            }
+                        }
+
+                        // No manual windowing on top of the grid: LazyVerticalGrid already only
+                        // composes what is visible, and the old visibleChapterCount slice
+                        // reallocated a sublist on every recomposition.
+                        items(chapters, key = { it.id }) { chapter ->
+                            val isRead = current.resumeChapterNumber?.let { chapter.chapterNumber < it } == true
+                            if (chapterLayout == ChapterLayout.GRID) {
+                                ChapterTile(
+                                    chapter = chapter,
+                                    isRead = isRead,
+                                    isDownloaded = false,
+                                    onClick = { onChapterClick(chapter) },
+                                    modifier = Modifier.padding(horizontal = 0.dp),
+                                )
+                            } else {
+                                ChapterRow(
+                                    chapter = chapter,
+                                    isRead = isRead,
+                                    isDownloaded = false,
+                                    onClick = { onChapterClick(chapter) },
+                                    modifier = Modifier.padding(horizontal = 20.dp),
+                                )
+                            }
+                        }
+
+                        if (current.isLoadingChapters) {
+                            item(key = "chapterLoadingFooter", span = { GridItemSpan(maxLineSpan) }) {
+                                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                    AsterionLoadingIndicator()
                                 }
                             }
                         }
                     }
 
-                    items(current.chapters.take(visibleChapterCount), key = { it.id }) { chapter ->
-                        ListItem(
-                            headlineContent = { Text(chapter.title) },
-                            leadingContent = {
-                                Text(
-                                    "${chapter.chapterNumber}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            },
-                            trailingContent = { Icon(PhosphorIcons.ChevronRight, contentDescription = null) },
-                            modifier = Modifier.clickable { onChapterClick(chapter) },
-                        )
-                    }
+                    FastScrollbar(
+                        state = gridState,
+                        totalItems = headerCount + chapters.size,
+                        label = { index ->
+                            chapters.getOrNull(index - headerCount)?.let { "Ch. ${it.chapterNumber}" } ?: ""
+                        },
+                    )
 
-                    if (visibleChapterCount < current.chapters.size) {
-                        item(key = "chapterLoadingFooter") {
-                            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            }
-                        }
-                    }
+                    BackToTopButton(
+                        visible = gridState.firstVisibleItemIndex > headerCount,
+                        onClick = { scope.launch { gridState.scrollToItem(0) } },
+                    )
+                }
+
+                if (showJumpDialog) {
+                    JumpToChapterDialog(
+                        totalChapters = current.totalChapters,
+                        onDismiss = { showJumpDialog = false },
+                        onJump = { number ->
+                            showJumpDialog = false
+                            jumpToChapterNumber(number)
+                        },
+                    )
                 }
             }
         }

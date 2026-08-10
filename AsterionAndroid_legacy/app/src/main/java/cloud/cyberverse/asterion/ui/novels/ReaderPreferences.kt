@@ -1,5 +1,10 @@
 package cloud.cyberverse.asterion.ui.novels
 
+import cloud.cyberverse.asterion.ui.theme.AsterionDarkBackground
+import cloud.cyberverse.asterion.ui.theme.AsterionDarkBorder
+import cloud.cyberverse.asterion.ui.theme.AsterionDarkMuted
+import cloud.cyberverse.asterion.ui.theme.AsterionDarkOnBackground
+
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -23,11 +28,23 @@ data class ReaderSettings(
 
 data class ReaderPalette(val background: Color, val text: Color, val muted: Color, val border: Color)
 
+/**
+ * Paper and sepia are reading surfaces in their own right and deliberately ignore the app theme -
+ * the point of a reader is to choose the page you read on.
+ *
+ * Ink is different: it is "match the app", so it draws from the app's own dark tokens rather than
+ * repeating their values. It had drifted to the pre-redesign blacks, which left the reader a
+ * visibly different shade from the screen it opened from.
+ */
 fun ReaderTheme.palette(): ReaderPalette = when (this) {
-    // Matches AsterionMac's ReaderTheme trio (paper/sepia/ink) so the same mental model carries over.
     ReaderTheme.PAPER -> ReaderPalette(Color(0xFFF7F1E3), Color(0xFF2B2620), Color(0xFF6B6560), Color(0xFFDDD7CE))
     ReaderTheme.SEPIA -> ReaderPalette(Color(0xFFE9DCC3), Color(0xFF3A2E1F), Color(0xFF7A6A4F), Color(0xFFD2C0A0))
-    ReaderTheme.INK -> ReaderPalette(Color(0xFF121114), Color(0xFFF0EEEA), Color(0xFFA8A29E), Color(0xFF38343A))
+    ReaderTheme.INK -> ReaderPalette(
+        background = AsterionDarkBackground,
+        text = AsterionDarkOnBackground,
+        muted = AsterionDarkMuted,
+        border = AsterionDarkBorder,
+    )
 }
 
 fun ReaderFont.fontFamily(): FontFamily = when (this) {

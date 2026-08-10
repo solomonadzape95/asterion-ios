@@ -81,6 +81,12 @@ object PhosphorIcons {
     val FullscreenExit: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_corners_in)
 
+    val GridView: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_squares_four)
+
+    val JumpTo: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_magnifying_glass_plus)
+
     val Hd: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_high_definition)
 

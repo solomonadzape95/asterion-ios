@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import cloud.cyberverse.asterion.ui.theme.OverlayColors
 import cloud.cyberverse.asterion.ui.components.PhosphorIcons
 import cloud.cyberverse.asterion.ui.components.AsterionLoadingIndicator
 import cloud.cyberverse.asterion.ui.components.EmbedWebView
@@ -78,7 +79,7 @@ private fun WebSourcePlayer(
         if (sources.size > 1) {
             Box(Modifier.align(Alignment.TopEnd).padding(12.dp)) {
                 IconButton(onClick = { showSourceMenu = true }) {
-                    Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = Color.White)
+                    Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = OverlayColors.Content)
                 }
                 DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
                     sources.forEachIndexed { index, source ->

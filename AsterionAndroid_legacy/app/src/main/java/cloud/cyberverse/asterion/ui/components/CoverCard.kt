@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cloud.cyberverse.asterion.ui.theme.OverlayColors
 import cloud.cyberverse.asterion.ui.theme.CoverCornerRadius
 
 /** A poster + title/subtitle, matching the shelf cards in the Asterion design reference. */
@@ -91,7 +92,7 @@ private fun BoxScope.CoverBadge(text: String, alignment: Alignment, color: Color
     Text(
         text,
         style = MaterialTheme.typography.labelSmall,
-        color = Color.White,
+        color = OverlayColors.Content,
         maxLines = 1,
         modifier = Modifier
             .align(alignment)

@@ -1,5 +1,7 @@
 package cloud.cyberverse.asterion.ui.components
 
+import cloud.cyberverse.asterion.ui.theme.OverlayColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -154,7 +156,7 @@ fun VideoPlayerControls(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.55f))
+                .background(OverlayColors.ControlScrim)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -165,10 +167,10 @@ fun VideoPlayerControls(
                     Icon(
                         imageVector = if (isPlaying) PhosphorIcons.Pause else PhosphorIcons.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color.White,
+                        tint = OverlayColors.Content,
                     )
                 }
-                Text(formatMillis(positionMs.toLong()), color = Color.White, modifier = Modifier.padding(horizontal = 4.dp))
+                Text(formatMillis(positionMs.toLong()), color = OverlayColors.Content, modifier = Modifier.padding(horizontal = 4.dp))
                 Slider(
                     value = if (durationMs > 0) positionMs / durationMs.toFloat() else 0f,
                     onValueChange = {
@@ -181,16 +183,16 @@ fun VideoPlayerControls(
                         player.seekTo(positionMs.toLong())
                         isSeeking = false
                     },
-                    colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White),
+                    colors = SliderDefaults.colors(thumbColor = OverlayColors.Content, activeTrackColor = OverlayColors.Content),
                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                 )
-                Text(formatMillis(durationMs), color = Color.White, modifier = Modifier.padding(horizontal = 4.dp))
+                Text(formatMillis(durationMs), color = OverlayColors.Content, modifier = Modifier.padding(horizontal = 4.dp))
             }
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box {
                     IconButton(onClick = { keepControlsVisible(); showSpeedMenu = true }) {
-                        Icon(PhosphorIcons.Speed, contentDescription = "Playback speed", tint = Color.White)
+                        Icon(PhosphorIcons.Speed, contentDescription = "Playback speed", tint = OverlayColors.Content)
                     }
                     DropdownMenu(expanded = showSpeedMenu, onDismissRequest = { showSpeedMenu = false; keepControlsVisible() }) {
                         PLAYBACK_SPEEDS.forEach { option ->
@@ -213,7 +215,7 @@ fun VideoPlayerControls(
                 if (sources.size > 1) {
                     Box {
                         IconButton(onClick = { keepControlsVisible(); showSourceMenu = true }) {
-                            Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = Color.White)
+                            Icon(PhosphorIcons.SwapHoriz, contentDescription = "Source", tint = OverlayColors.Content)
                         }
                         DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false; keepControlsVisible() }) {
                             sources.forEachIndexed { index, source ->
@@ -237,7 +239,7 @@ fun VideoPlayerControls(
                             Icon(
                                 if (selectedSubtitleIndex == null) PhosphorIcons.ClosedCaptionOff else PhosphorIcons.ClosedCaption,
                                 contentDescription = "Subtitles",
-                                tint = Color.White,
+                                tint = OverlayColors.Content,
                             )
                         }
                         DropdownMenu(expanded = showSubtitleMenu, onDismissRequest = { showSubtitleMenu = false; keepControlsVisible() }) {
@@ -270,13 +272,13 @@ fun VideoPlayerControls(
                 Box(modifier = Modifier.weight(1f))
 
                 IconButton(onClick = { keepControlsVisible(); onEnterPictureInPicture() }) {
-                    Icon(PhosphorIcons.PictureInPictureAlt, contentDescription = "Picture in picture", tint = Color.White)
+                    Icon(PhosphorIcons.PictureInPictureAlt, contentDescription = "Picture in picture", tint = OverlayColors.Content)
                 }
                 IconButton(onClick = { keepControlsVisible(); onToggleFullscreen() }) {
                     Icon(
                         imageVector = if (isFullscreen) PhosphorIcons.FullscreenExit else PhosphorIcons.Fullscreen,
                         contentDescription = "Toggle fullscreen",
-                        tint = Color.White,
+                        tint = OverlayColors.Content,
                     )
                 }
             }
