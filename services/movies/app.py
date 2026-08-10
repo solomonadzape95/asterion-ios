@@ -6,6 +6,7 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from functools import wraps
 from typing import Optional
 from urllib.parse import urlparse
@@ -237,10 +238,25 @@ def api_show_episodes(slug):
     return [e.__dict__ for e in eps]
 
 
+# Verified source URLs are short-lived signed CDN links, so this is cached far more briefly than
+# catalog data - long enough to make a retry or a second viewer instant, short enough to stay valid.
+PLAYBACK_CACHE_TTL_SECONDS = 10 * 60
+
+# Cloudflare gives up on an origin at 100s. Verification must finish comfortably inside that or
+# the reader gets a 524 and no sources at all, which is strictly worse than fewer verified ones.
+PLAYBACK_VERIFY_BUDGET_SECONDS = 25
+
+
 @app.route("/api/playback/<path:slug>")
 def api_playback(slug):
     """Resolve and verify fresh direct sources; retain embeds for manual use."""
     try:
+        cache_key = f"playback:{slug}"
+        cached = db.cache_get(cache_key)
+        if cached:
+            return flask.jsonify(cached)
+
+        # Reuse the same cached detail payload /api/show serves rather than re-scraping the page.
         detail = scraper.show_detail(slug)
         if not detail or not detail.streams:
             return flask.jsonify({"error": "No playback sources were found."}), 404
@@ -251,26 +267,47 @@ def api_playback(slug):
 
         verified_by_index: dict[int, dict] = {}
         worker_count = min(8, max(1, len(direct_sources)))
-        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        executor = ThreadPoolExecutor(max_workers=worker_count)
+        try:
             pending = {
                 executor.submit(playback.verify_direct_source, source): index
                 for index, source in enumerate(direct_sources)
             }
-            for future in as_completed(pending):
-                verified = future.result()
-                if verified:
-                    verified_by_index[pending[future]] = verified
+            try:
+                for future in as_completed(pending, timeout=PLAYBACK_VERIFY_BUDGET_SECONDS):
+                    verified = future.result()
+                    if verified:
+                        verified_by_index[pending[future]] = verified
+            except FuturesTimeoutError:
+                # Whatever verified inside the budget is still playable; the unverified embeds
+                # remain available for manual selection.
+                app.logger.warning(
+                    "Playback verification budget exhausted for %s after %ss (%s/%s verified)",
+                    slug,
+                    PLAYBACK_VERIFY_BUDGET_SECONDS,
+                    len(verified_by_index),
+                    len(direct_sources),
+                )
+                for future in pending:
+                    future.cancel()
+        finally:
+            # Don't block the response on stragglers still inside their socket timeouts.
+            executor.shutdown(wait=False, cancel_futures=True)
 
         verified_sources = [
             verified_by_index[index]
             for index in range(len(direct_sources))
             if index in verified_by_index
         ]
-        return flask.jsonify({
+        payload = {
             "slug": slug,
             "sources": verified_sources + manual_sources,
             "verified_direct_count": len(verified_sources),
-        })
+        }
+        # Only worth caching if we actually resolved something playable.
+        if payload["sources"]:
+            db.cache_set(cache_key, payload, PLAYBACK_CACHE_TTL_SECONDS)
+        return flask.jsonify(payload)
     except Exception:
         app.logger.exception("Playback source resolution failed")
         return flask.jsonify({"error": "Playback sources could not be verified."}), 502
