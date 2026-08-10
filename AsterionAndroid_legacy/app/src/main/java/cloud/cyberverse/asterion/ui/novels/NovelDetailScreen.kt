@@ -148,7 +148,9 @@ fun NovelDetailScreen(
                     if (index >= visibleChapterCount) {
                         visibleChapterCount = minOf(index + 1, current.chapters.size)
                     }
-                    scope.launch { listState.animateScrollToItem(CHAPTER_LIST_OFFSET + index) }
+                    // scrollToItem, not animateScrollToItem: animating to chapter 4,000 scrolls
+                    // through every item in between, which is a long ride, not a jump.
+                    scope.launch { listState.scrollToItem(CHAPTER_LIST_OFFSET + index) }
                 }
 
                 LazyColumn(state = listState, modifier = Modifier.padding(padding)) {
@@ -157,6 +159,7 @@ fun NovelDetailScreen(
                             ?.let { number -> current.chapters.firstOrNull { it.chapterNumber == number } }
                         NovelHero(
                             novel = current.novel,
+                            totalChapters = current.totalChapters,
                             resumeChapter = resumeChapter,
                             onStartReading = { (resumeChapter ?: current.chapters.firstOrNull())?.let(onChapterClick) },
                         )
@@ -171,7 +174,16 @@ fun NovelDetailScreen(
 
                     item(key = "chaptersHeader") {
                         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                            SectionHeader(title = "Chapters", subtitle = "${current.chapters.size} chapters")
+                            SectionHeader(
+                                title = "Chapters",
+                                subtitle = when {
+                                    current.isLoadingChapters ->
+                                        "${current.chapters.size} of ${current.totalChapters} loaded…"
+                                    current.isChapterListPartial ->
+                                        "${current.chapters.size} of ${current.totalChapters} chapters available"
+                                    else -> "${current.totalChapters} chapters"
+                                },
+                            )
                             if (current.chapters.size > CHAPTER_PAGE_SIZE) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -230,7 +242,12 @@ fun NovelDetailScreen(
 }
 
 @Composable
-private fun NovelHero(novel: Novel, resumeChapter: Chapter?, onStartReading: () -> Unit) {
+private fun NovelHero(
+    novel: Novel,
+    totalChapters: Int,
+    resumeChapter: Chapter?,
+    onStartReading: () -> Unit,
+) {
     Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         AsterionAsyncImage(
             model = novel.imageUrl,
@@ -263,7 +280,7 @@ private fun NovelHero(novel: Novel, resumeChapter: Chapter?, onStartReading: () 
             novel.genres?.firstOrNull()?.let { genre ->
                 MetadataChip(icon = null, text = genre, tint = genreColor(novel.genres))
             }
-            novel.totalChapters?.let { MetadataChip(Icons.Filled.AutoStories, "$it ch.") }
+            if (totalChapters > 0) MetadataChip(Icons.Filled.AutoStories, "$totalChapters ch.")
             novel.rating?.let { MetadataChip(Icons.Filled.Star, it.toString()) }
             novel.views?.let { MetadataChip(Icons.Filled.Visibility, it) }
         }

@@ -95,11 +95,14 @@ class ChapterReaderViewModel(
      * with the detail screen through the cache; failure is non-fatal because the chapter itself
      * has already loaded.
      */
-    private suspend fun chapterList(): List<Chapter> =
-        cache.chapters(novelId)
-            ?: runCatching { api.fetchAllChapters(novelId) }
-                .onSuccess { cache.putChapters(novelId, it) }
-                .getOrDefault(emptyList())
+    private suspend fun chapterList(): List<Chapter> {
+        cache.chapters(novelId)?.let { return it }
+        val crawl = runCatching { api.fetchAllChapters(novelId) }.getOrNull() ?: return emptyList()
+        // Only cache a list we know is whole - a truncated crawl would otherwise become the
+        // chapter list the detail screen serves from too.
+        if (crawl.isComplete) cache.putChapters(novelId, crawl.chapters)
+        return crawl.chapters
+    }
 
     /** Reports the reader's current scroll position within this chapter, synced to the account so
      * "Continue Chapter N" on the novel's detail page reflects where the reader actually is. */

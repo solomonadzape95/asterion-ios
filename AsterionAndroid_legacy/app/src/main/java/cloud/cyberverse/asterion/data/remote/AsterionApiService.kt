@@ -80,36 +80,104 @@ interface AsterionApiService {
     suspend fun saveMediaProgress(@Body body: MediaProgressRequest): ItemEnvelope<MediaProgressSaveResult>
 }
 
+/** The server caps a chapters page at 100. */
+const val CHAPTER_PAGE_LIMIT = 100
+
+/**
+ * A slice of a novel's chapters plus the server's count of the whole list.
+ *
+ * [total] is the number to show a reader. The novel record carries its own `totalChapters`, but
+ * that is an unparsed string written by the scraper and is routinely wrong or stale; the chapters
+ * endpoint counts the rows that actually exist.
+ */
+data class ChapterPage(
+    val chapters: List<Chapter>,
+    val total: Int,
+)
+
+/**
+ * The outcome of walking every chapter page.
+ *
+ * [isComplete] is the point of this type. The previous crawl treated a short page as "end of list"
+ * and stopped, so any hiccup mid-catalog silently dropped every chapter after it and the screen
+ * presented the remainder as the whole novel. Callers can now tell a finished list from a
+ * truncated one.
+ */
+data class ChapterCrawl(
+    val chapters: List<Chapter>,
+    val total: Int,
+    val isComplete: Boolean,
+)
+
+/** Fetches a single page, for callers that render the first page before the rest arrives. */
+suspend fun AsterionApiService.fetchChapterPage(
+    novelId: String,
+    offset: Int = 0,
+    pageSize: Int = CHAPTER_PAGE_LIMIT,
+): ChapterPage {
+    val limit = pageSize.coerceIn(1, CHAPTER_PAGE_LIMIT)
+    val response = chapters(novelId = novelId, limit = limit, offset = offset)
+    val reportedTotal = response.meta?.total?.takeIf { it > 0 }
+    return ChapterPage(
+        chapters = response.data,
+        total = reportedTotal ?: (offset + response.data.size),
+    )
+}
+
+/**
+ * Walks every page, driven by the server's reported total rather than by page shape.
+ *
+ * [startingFrom] lets a caller that already rendered page one continue from where it left off
+ * instead of refetching what is already on screen.
+ */
 suspend fun AsterionApiService.fetchAllChapters(
     novelId: String,
-    pageSize: Int = 100,
-): List<Chapter> {
-    val normalizedPageSize = pageSize.coerceIn(1, 100)
-    val allChapters = mutableListOf<Chapter>()
-    val seenIds = mutableSetOf<String>()
-    var offset = 0
+    pageSize: Int = CHAPTER_PAGE_LIMIT,
+    startingFrom: List<Chapter> = emptyList(),
+): ChapterCrawl {
+    val limit = pageSize.coerceIn(1, CHAPTER_PAGE_LIMIT)
+    val collected = startingFrom.toMutableList()
+    val seenIds = startingFrom.mapTo(mutableSetOf()) { it.id }
+    var offset = startingFrom.size
+    var total = 0
+    var isComplete = false
 
     while (true) {
-        val response = chapters(
-            novelId = novelId,
-            limit = normalizedPageSize,
-            offset = offset,
-        )
+        val response = chapters(novelId = novelId, limit = limit, offset = offset)
         val newChapters = response.data.filter { seenIds.add(it.id) }
-        allChapters += newChapters
+        collected += newChapters
+        total = response.meta?.total?.takeIf { it > 0 } ?: total
 
-        val total = response.meta?.total?.takeIf { it > 0 }
-        if (
-            response.data.isEmpty() ||
-            newChapters.isEmpty() ||
-            response.data.size < normalizedPageSize ||
-            total?.let { allChapters.size >= it } == true
-        ) {
+        if (total > 0 && collected.size >= total) {
+            isComplete = true
             break
         }
 
-        offset += normalizedPageSize
+        if (response.data.isEmpty()) {
+            // No total to aim at (older responses omit meta), so an empty page is the only
+            // honest end-of-list signal available.
+            isComplete = total <= 0 || collected.size >= total
+            break
+        }
+
+        if (newChapters.isEmpty()) {
+            // Every row on this page was already seen, which means offsets are repeating rather
+            // than advancing. Continuing would loop forever over the same rows.
+            break
+        }
+
+        if (response.data.size < limit) {
+            // A short page before reaching the total means the server gave us less than it says
+            // exists. Stopping here is right, but claiming the list is complete is not.
+            break
+        }
+
+        offset += limit
     }
 
-    return allChapters.sortedBy { it.chapterNumber }
+    return ChapterCrawl(
+        chapters = collected.sortedBy { it.chapterNumber },
+        total = maxOf(total, collected.size),
+        isComplete = isComplete,
+    )
 }
