@@ -289,10 +289,17 @@ def add_security_headers(response):
 
 @app.route("/api/health")
 def api_health():
+    """
+    Reports liveness, not cache health.
+
+    This endpoint backs the container HEALTHCHECK, so returning non-200 here takes the whole
+    service out of rotation. Redis being down degrades anime to uncached scraping - it does not
+    mean the process is broken - so that is reported in the body and still answered with 200.
+    """
     try:
         anime_cache().ping()
     except AnimeCacheError as error:
-        return {"status": "error", "redis": "unavailable", "error": str(error)}, 503
+        return {"status": "degraded", "redis": "unavailable", "detail": str(error)}
     return {"status": "ok", "redis": "ok"}
 
 

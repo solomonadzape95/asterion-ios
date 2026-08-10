@@ -1,10 +1,36 @@
 import json
+import os
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import patch
 
+import redis
+
 import app
-from anime_cache import AnimeCache, AnimeCacheError
+from anime_cache import (
+    AnimeCache,
+    AnimeCacheError,
+    NullAnimeCache,
+    anime_cache,
+    reset_anime_cache,
+)
+
+
+class UnreachableRedis:
+    """Stands in for a Redis box that is up in config but down in fact."""
+
+    def get(self, key):
+        raise redis.ConnectionError("connection refused")
+
+    def setex(self, key, ttl, value):
+        raise redis.ConnectionError("connection refused")
+
+    def lock(self, key, timeout=None, blocking_timeout=None):
+        raise redis.ConnectionError("connection refused")
+
+    def ping(self):
+        raise redis.ConnectionError("connection refused")
 
 
 class FakeLock:
@@ -65,13 +91,56 @@ class AnimeCacheTests(unittest.TestCase):
             300,
         )
 
-    def test_invalid_cached_json_is_reported(self):
+    def test_invalid_cached_json_is_treated_as_a_miss(self):
         client = FakeRedis()
         client.values["asterion:anime:v1:show:test"] = "{"
         cache = AnimeCache(client)
 
-        with self.assertRaisesRegex(AnimeCacheError, "invalid data"):
-            cache.get_json("show:test")
+        self.assertIsNone(cache.get_json("show:test"))
+
+    def test_invalid_cached_json_reloads_rather_than_failing(self):
+        client = FakeRedis()
+        client.values["asterion:anime:v1:show:test"] = "{"
+        cache = AnimeCache(client)
+
+        result = cache.get_or_load("show:test", 300, lambda: {"id": "123"})
+
+        self.assertEqual(result, {"id": "123"})
+
+    def test_unreachable_redis_still_serves_from_the_loader(self):
+        cache = AnimeCache(UnreachableRedis())
+
+        result = cache.get_or_load("show:test", 300, lambda: {"id": "123"})
+
+        self.assertEqual(result, {"id": "123"})
+
+    def test_null_cache_always_loads(self):
+        cache = NullAnimeCache()
+        calls = []
+
+        first = cache.get_or_load("show:test", 300, lambda: calls.append(1) or {"id": "123"})
+        second = cache.get_or_load("show:test", 300, lambda: calls.append(1) or {"id": "123"})
+
+        self.assertEqual(first, {"id": "123"})
+        self.assertEqual(second, {"id": "123"})
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(cache.available)
+
+    def test_missing_redis_url_degrades_instead_of_raising(self):
+        reset_anime_cache()
+        with mock.patch.dict(os.environ, {"REDIS_URL": ""}, clear=False):
+            cache = anime_cache()
+        self.assertIsInstance(cache, NullAnimeCache)
+        reset_anime_cache()
+
+    def test_health_stays_200_when_redis_is_down(self):
+        """The container HEALTHCHECK reads this route - a 503 here takes anime entirely offline."""
+        reset_anime_cache()
+        with mock.patch.dict(os.environ, {"REDIS_URL": ""}, clear=False):
+            response = app.app.test_client().get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["redis"], "unavailable")
+        reset_anime_cache()
 
 
 class AnimeEndpointCacheTests(unittest.TestCase):
