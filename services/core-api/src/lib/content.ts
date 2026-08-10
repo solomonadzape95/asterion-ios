@@ -46,7 +46,7 @@ export interface PaginatedResult<T> {
   total: number;
 }
 
-let contentSchemaEnsured = false;
+let contentSchemaPromise: Promise<void> | null = null;
 
 function stringifyId(value: unknown): string {
   return String(value);
@@ -100,10 +100,18 @@ function mapChapterListRow(row: Record<string, unknown>): ContentChapterListItem
 }
 
 export async function ensureContentSchema() {
-  if (contentSchemaEnsured) {
-    return;
-  }
+  // Memoised on the promise, not on a flag set after the DDL completes. With a flag, a burst of
+  // requests arriving during a cold start each see `false` and run the whole DDL concurrently -
+  // exactly the traffic shape this API gets when the app launches and fires several calls at once.
+  contentSchemaPromise ??= runContentSchemaMigrations().catch((error) => {
+    // Never cache a failure: a transient outage at boot would otherwise poison every later request.
+    contentSchemaPromise = null;
+    throw error;
+  });
+  return contentSchemaPromise;
+}
 
+async function runContentSchemaMigrations() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS novels (
       id BIGSERIAL PRIMARY KEY,
@@ -145,7 +153,37 @@ export async function ensureContentSchema() {
     CREATE INDEX IF NOT EXISTS idx_chapters_novel_id ON chapters (novel_id);
   `);
 
-  contentSchemaEnsured = true;
+  // Chapter lists are always ordered by chapter_number within a novel and paged with OFFSET.
+  // Without this the planner sorts every chapter of the novel on each page request - for a
+  // 4,000-chapter novel that is 40 sorts of 4,000 rows to render one screen.
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_chapters_novel_id_chapter_number
+      ON chapters (novel_id, chapter_number);
+  `);
+
+  // Search is `title ILIKE '%q%' OR author ILIKE '%q%'`. A leading wildcard cannot use a btree
+  // index, so this was a sequential scan over the whole table, run twice per request (COUNT then
+  // SELECT). Trigram indexes are the one kind that does support leading wildcards.
+  try {
+    await pool.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_novels_title_trgm
+        ON novels USING GIN (title gin_trgm_ops);
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_novels_author_trgm
+        ON novels USING GIN (author gin_trgm_ops);
+    `);
+  } catch (error) {
+    // Creating an extension needs elevated privileges that a managed Postgres role may not have.
+    // Search stays correct without the index, just slower, so this must not stop the service.
+    console.warn("Could not create pg_trgm search indexes; search will use a sequential scan:", error);
+  }
+
+  // The catalog listing is ORDER BY id DESC with OFFSET paging.
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_novels_id_desc ON novels (id DESC);
+  `);
 }
 
 export async function listNovels(options: {

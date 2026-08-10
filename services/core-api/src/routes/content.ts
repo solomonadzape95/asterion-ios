@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { z } from "zod";
 import {
   getChapterById,
@@ -83,6 +83,17 @@ function buildMeta({
   };
 }
 
+/**
+ * Novel content is scraped periodically, not edited live, so it tolerates being a little stale.
+ * These headers are what let the app's HTTP cache serve instantly and revalidate in the
+ * background instead of blocking every screen open on a round trip.
+ *
+ * `stale-while-revalidate` matters most here: a reader reopening a novel gets the cached copy
+ * immediately while the refresh happens behind them.
+ */
+const cacheFor = (reply: FastifyReply, seconds: number) =>
+  reply.header("Cache-Control", `public, max-age=${seconds}, stale-while-revalidate=${seconds * 4}`);
+
 export const contentRoutes: FastifyPluginAsync = async (app) => {
   app.get("/novels", async (request, reply) => {
     const parsed = novelsQuerySchema.safeParse(request.query);
@@ -101,6 +112,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       ...(parsed.data.search ? { search: parsed.data.search } : {}),
     });
 
+    cacheFor(reply, 300);
     return {
       data: result.data,
       meta: buildMeta({
@@ -125,6 +137,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: `Novel with id ${params.data.id} not found.` });
     }
 
+    cacheFor(reply, 3600);
     return { data: novel };
   });
 
@@ -155,6 +168,9 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       ...(query.data.search ? { search: query.data.search } : {}),
     });
 
+    // Chapter lists only grow at the tail as new chapters are scraped, so a short window keeps
+    // "a new chapter appeared" responsive while still absorbing repeated screen opens.
+    cacheFor(reply, 600);
     return {
       data: result.data,
       meta: buildMeta({
@@ -192,6 +208,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         .send({ error: `Chapter ${params.data.chapterNumber} not found for novel ${params.data.id}.` });
     }
 
+    // A published chapter's text does not change; this is the safest thing in the API to cache.
+    cacheFor(reply, 86400);
     return { data: chapter };
   });
 
@@ -206,6 +224,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: `Chapter with id ${params.data.id} not found.` });
     }
 
+    // A published chapter's text does not change; this is the safest thing in the API to cache.
+    cacheFor(reply, 86400);
     return { data: chapter };
   });
 };
